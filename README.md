@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/relaydex-banner.svg" alt="Relaydex banner" />
+  <img src="assets/feature-graphic-1024x500.png" alt="Relaydex banner" />
 </p>
 
 # Relaydex
