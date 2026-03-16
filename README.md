@@ -4,6 +4,8 @@
 
 # Relaydex
 
+[日本語 README](README.ja.md)
+
 Fork of [Remodex](https://github.com/Emanuele-web04/remodex) focused on one concrete workflow:
 
 - run local Codex on Windows
@@ -43,7 +45,12 @@ Relaydex does **not** run Codex on the phone itself. Instead:
 ## Planned Distribution
 
 - Windows host bridge: publish to npm as `relaydex`
-- Android client: ship as a separate paid app build from `android/`
+- Android client: ship from `android/`
+
+Current release status:
+
+- the current Google Play closed test is free to install
+- the Android app is planned to become paid after closed testing ends
 
 The intended user flow after release is:
 
@@ -96,23 +103,30 @@ Short version:
 
 ## Android Closed Test
 
-Relaydex is preparing for Google Play closed testing.
+Relaydex is currently in Google Play closed testing.
 
 If you want to help test the Android app:
 
 1. Join the tester group: `https://groups.google.com/g/relaydex-android-testers`
 2. Opt in on Google Play: `https://play.google.com/apps/testing/io.relaydex.android`
-3. Request one promo code for the paid app
-4. Redeem the code and install the app from Google Play: `https://play.google.com/store/apps/details?id=io.relaydex.android`
-5. Keep the app installed and remain opted in for at least 14 days
+3. Install the current closed-test build from Google Play: `https://play.google.com/store/apps/details?id=io.relaydex.android`
+4. Open the app at least once and keep it installed and opted in for at least 14 days
+5. Send feedback if you hit bugs, pairing problems, or UX issues
 
 Notes:
 
 - This is an independent fork of Remodex, not the official Remodex app.
 - The Android app is only the remote control client.
 - Codex still runs locally on your own computer.
-- Google Play may show the paid price before redemption.
-- Closed testers should receive one free promo code after joining the group and opting in.
+- The current closed-test build is free on Google Play.
+- The production Android release is planned to become paid after closed testing ends.
+
+Recommended feedback flow:
+
+1. Join the tester group and opt in on Play.
+2. Install the app and try one real host pairing.
+3. Report issues through the closed-test issue form: `https://github.com/Ranats/relaydex/issues/new?template=closed-test-feedback.yml`
+4. If GitHub is inconvenient, send feedback by email: `mailto:saxophonia991@gmail.com?subject=Relaydex%20closed%20test%20feedback`
 
 Recruitment and rollout docs:
 
@@ -120,6 +134,23 @@ Recruitment and rollout docs:
 - [Docs/CLOSED_TEST_PLAN.md](Docs/CLOSED_TEST_PLAN.md)
 - [Docs/TESTER_RECRUITMENT_COPY.md](Docs/TESTER_RECRUITMENT_COPY.md)
 - [Docs/CLOSED_TEST_LANDING_PAGE.md](Docs/CLOSED_TEST_LANDING_PAGE.md)
+
+## Feedback
+
+Best links to share with testers:
+
+- Closed-test guide: `https://ranats.github.io/relaydex/closed-test.html`
+- Play opt-in: `https://play.google.com/apps/testing/io.relaydex.android`
+- Play install page: `https://play.google.com/store/apps/details?id=io.relaydex.android`
+- Issue form: `https://github.com/Ranats/relaydex/issues/new?template=closed-test-feedback.yml`
+
+Suggested Play Console feedback URL:
+
+- `https://github.com/Ranats/relaydex/issues/new?template=closed-test-feedback.yml`
+
+Suggested Play Console feedback email:
+
+- `saxophonia991@gmail.com`
 
 ## Bridge Package
 

@@ -30,6 +30,11 @@ Google's official closed testing flow supports:
 
 This means you do not need to DM every tester manually.
 
+Current Relaydex recommendation:
+
+- keep the current closed test free on Google Play
+- mention that the planned production Android release is expected to become paid after closed testing ends
+
 ## Recommended setup
 
 ### 1. Create a Google Group for testers
@@ -69,7 +74,8 @@ This page should contain:
 - Step 1: join the tester group
 - Step 2: open the Play opt-in link
 - Step 3: install the test build
-- Step 4: keep the app installed and opted in for at least 14 days
+- Step 4: try one real pairing with a Windows host
+- Step 5: keep the app installed and opted in for at least 14 days
 - where to send feedback
 
 Good places:
@@ -121,7 +127,7 @@ Keep the ask very simple:
 1. Join the tester group
 2. Open the Play opt-in link
 3. Install the app
-4. Open it once
+4. Open it once and try pairing with the host
 5. Stay opted in for 14 days
 6. Send feedback if something breaks
 

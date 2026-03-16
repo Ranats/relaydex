@@ -115,6 +115,8 @@ Recommended values:
 - Category: `Productivity` or `Tools`
 - Contact email: your support email
 - Website: optional, but GitHub repo or landing page is better than blank
+- Closed-test feedback URL: `https://github.com/Ranats/relaydex/issues/new?template=closed-test-feedback.yml`
+- Closed-test feedback email: `saxophonia991@gmail.com`
 
 ## 11. Store listing
 

@@ -1,0 +1,65 @@
+name: Closed Test Feedback
+description: Report a bug, onboarding issue, or UX problem from the Relaydex Android closed test.
+title: "[Closed Test] "
+labels:
+  - closed-test
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping with the Relaydex Android closed test.
+
+        Please include enough detail for us to reproduce the issue.
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: Phone model and Android version
+      placeholder: Google Pixel 9a, Android 16
+    validations:
+      required: true
+  - type: dropdown
+    id: pairing
+    attributes:
+      label: Pairing method
+      options:
+        - QR code
+        - Pairing payload
+        - Reconnect Saved Pairing
+        - Not related to pairing
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Tell us exactly what you did.
+      placeholder: |
+        1. Ran relaydex up
+        2. Opened the app
+        3. Scanned the QR
+        4. Opened an existing thread
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      placeholder: The app should reconnect and open the thread list.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      placeholder: The app timed out after 20 seconds and returned to the pairing screen.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste text or drag screenshots here if available.
+      placeholder: relaydex up output, error dialog text, screenshots
+    validations:
+      required: false
