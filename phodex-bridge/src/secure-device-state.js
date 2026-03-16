@@ -1,7 +1,7 @@
 // FILE: secure-device-state.js
 // Purpose: Persists the bridge device identity and trusted phone registry for E2EE pairing.
 // Layer: CLI helper
-// Exports: loadOrCreateBridgeDeviceState, rememberTrustedPhone, getTrustedPhonePublicKey
+// Exports: loadOrCreateBridgeDeviceState, resetBridgeDeviceState, rememberTrustedPhone, getTrustedPhonePublicKey
 // Depends on: fs, os, path, crypto, child_process
 
 const fs = require("fs");
@@ -24,6 +24,16 @@ function loadOrCreateBridgeDeviceState() {
   const nextState = createBridgeDeviceState();
   writeBridgeDeviceState(nextState);
   return nextState;
+}
+
+function resetBridgeDeviceState() {
+  const removedFileState = deleteStoredDeviceStateString();
+  const removedKeychainState = deleteKeychainStateString();
+  return {
+    hadState: removedFileState || removedKeychainState,
+    removedFileState,
+    removedKeychainState,
+  };
 }
 
 function rememberTrustedPhone(state, phoneDeviceId, phoneIdentityPublicKey) {
@@ -154,6 +164,39 @@ function writeKeychainStateString(value) {
   }
 }
 
+function deleteStoredDeviceStateString() {
+  const existed = fs.existsSync(STORE_FILE);
+  try {
+    fs.rmSync(STORE_FILE, { force: true });
+    return existed;
+  } catch {
+    return false;
+  }
+}
+
+function deleteKeychainStateString() {
+  if (process.platform !== "darwin") {
+    return false;
+  }
+
+  try {
+    execFileSync(
+      "security",
+      [
+        "delete-generic-password",
+        "-s",
+        KEYCHAIN_SERVICE,
+        "-a",
+        KEYCHAIN_ACCOUNT,
+      ],
+      { stdio: ["ignore", "ignore", "ignore"] }
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function normalizeBridgeDeviceState(rawState) {
   const macDeviceId = normalizeNonEmptyString(rawState?.macDeviceId);
   const macIdentityPublicKey = normalizeNonEmptyString(rawState?.macIdentityPublicKey);
@@ -204,4 +247,5 @@ module.exports = {
   getTrustedPhonePublicKey,
   loadOrCreateBridgeDeviceState,
   rememberTrustedPhone,
+  resetBridgeDeviceState,
 };

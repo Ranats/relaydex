@@ -42,6 +42,17 @@ Relaydex does **not** run Codex on the phone itself. Instead:
 - the phone acts as a paired remote control client
 - git and workspace actions still execute on the host machine
 
+## Key Features
+
+- end-to-end encrypted pairing between the Android client and the host bridge
+- local-first host workflow: Codex, git, and file operations stay on your Windows machine
+- QR pairing and pairing-payload paste
+- open existing threads and create new ones from Android
+- stream Codex output on the phone while work continues on the host
+- approval prompts on Android
+- reconnect from a saved pairing
+- model and reasoning controls on Android
+
 ## Current Release Status
 
 - Windows host bridge is published to npm as `relaydex`
@@ -58,6 +69,20 @@ relaydex up
 Then pair from the Android app.
 
 If you want to build the Android client from source before the Play release, see [Docs/ANDROID_BUILD_FROM_SOURCE.md](Docs/ANDROID_BUILD_FROM_SOURCE.md).
+
+## Install the Bridge
+
+Install from npm:
+
+```sh
+npm install -g relaydex
+```
+
+To update later:
+
+```sh
+npm install -g relaydex@latest
+```
 
 ## Architecture
 
@@ -99,6 +124,24 @@ Short version:
 4. Open the Android app.
 5. Scan the QR code or paste the pairing payload shown under the QR.
 
+## Commands
+
+### `relaydex up`
+
+Starts the local bridge, launches `codex app-server`, and prints a fresh pairing QR code.
+
+### `relaydex reset-pairing`
+
+Clears the saved trusted-device state so the next `relaydex up` starts a fresh pairing flow.
+
+### `relaydex resume`
+
+Reopens the last active thread in the local Codex desktop app if available.
+
+### `relaydex watch [threadId]`
+
+Tails the rollout log for a thread in real time.
+
 ## Android Availability
 
 The Android app is not yet broadly released on Google Play.
@@ -118,6 +161,19 @@ If you want to track Android release progress:
 - recruitment copy: [Docs/TESTER_RECRUITMENT_COPY.md](Docs/TESTER_RECRUITMENT_COPY.md)
 - launch copy: [Docs/LAUNCH_COPY.md](Docs/LAUNCH_COPY.md)
 
+## Self-Hosting
+
+The public repository is meant to stay self-host friendly.
+
+- GitHub source should remain usable without private release secrets
+- you can run a local relay or your own hosted relay
+- the relay is only a transport hop; Codex still runs on your own machine
+
+Start here:
+
+- [SELF_HOSTING_MODEL.md](SELF_HOSTING_MODEL.md)
+- [Docs/self-hosting.md](Docs/self-hosting.md)
+
 ## Feedback
 
 Best links to share with testers:
@@ -132,6 +188,22 @@ Suggested Play Console feedback URL:
 Suggested Play Console feedback email:
 
 - `saxophonia991@gmail.com`
+
+## Environment Variables
+
+The bridge accepts both `RELAYDEX_*` names and legacy `REMODEX_*` names.
+
+Common ones:
+
+| Variable | Description |
+|----------|-------------|
+| `RELAYDEX_RELAY` | Override the relay URL |
+| `RELAYDEX_CODEX_ENDPOINT` | Connect to an existing Codex WebSocket instead of spawning a local runtime |
+| `RELAYDEX_REFRESH_ENABLED` | Enable the macOS desktop refresh workaround explicitly |
+| `RELAYDEX_REFRESH_DEBOUNCE_MS` | Adjust refresh debounce timing |
+| `RELAYDEX_CODEX_BUNDLE_ID` | Override the Codex desktop bundle ID on macOS |
+
+If you are building from source or self-hosting, set these explicitly instead of assuming hosted defaults.
 
 ## Bridge Package
 
@@ -166,6 +238,23 @@ The Android client supports:
 - approval prompts
 
 To build it before the Play release, see [Docs/ANDROID_BUILD_FROM_SOURCE.md](Docs/ANDROID_BUILD_FROM_SOURCE.md).
+
+## FAQ
+
+**Does this work on Windows?**  
+Yes. This fork is specifically focused on the Windows host + Android workflow.
+
+**Does this run Codex on the phone itself?**  
+No. Codex runs on the host machine. The phone is only a paired remote client.
+
+**Can I self-host the relay?**  
+Yes. That is one of the intended public-repo paths. See [Docs/self-hosting.md](Docs/self-hosting.md).
+
+**What happens if I close the terminal running `relaydex up`?**  
+The bridge stops. Start it again to create a new live session.
+
+**How do I force a clean pairing state?**  
+Run `relaydex reset-pairing`, then start the bridge again with `relaydex up`.
 
 ## Security Notes
 
