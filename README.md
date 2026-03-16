@@ -6,37 +6,17 @@
 
 [Japanese README](README.ja.md)
 
-Fork of [Remodex](https://github.com/Emanuele-web04/remodex) focused on one concrete workflow:
+Relaydex is an independent fork of [Remodex](https://github.com/Emanuele-web04/remodex) focused on one workflow:
 
 - run local Codex on Windows
 - start a local bridge with `relaydex up`
 - control that local Codex session from Android
 
-Relaydex is a local-first bridge plus mobile clients. The Codex runtime stays on your host computer, while the paired phone acts as a remote control client over a relay-backed WebSocket session.
+Relaydex is local-first. Codex keeps running on your host computer, while the phone acts as a paired remote control client over a secure session.
 
-This repository is a monorepo:
+## What It Is
 
-- `phodex-bridge/`: the CLI package intended to be published to npm as `relaydex`
-- `android/`: the Android client intended to be distributed as a standalone paid app
-- `CodexMobile/`: the upstream iOS app source kept for protocol reference and compatibility work
-
-Right now, the default flow still depends on `api.phodex.app` unless you self-host a compatible relay.
-
-## Credits and Status
-
-Relaydex is an independent fork of [Remodex](https://github.com/Emanuele-web04/remodex), originally created by Emanuele Di Pietro.
-
-This repository is not the official Remodex app and is not affiliated with or endorsed by the upstream author.
-
-The goal of this fork is narrower and explicit:
-
-- keep the upstream bridge/protocol ideas
-- add Android client support
-- support the Windows host + Android remote-control workflow
-
-## What This Is
-
-Relaydex does **not** run Codex on the phone itself. Instead:
+Relaydex does **not** run Codex on the phone itself.
 
 - the host computer runs the local bridge and local Codex runtime
 - the phone acts as a paired remote control client
@@ -53,76 +33,58 @@ Relaydex does **not** run Codex on the phone itself. Instead:
 - reconnect from a saved pairing
 - model and reasoning controls on Android
 
-## Current Release Status
+## Current Status
 
 - Windows host bridge is published to npm as `relaydex`
-- the official Android Play release is still in preparation
-- if you want to try the Android client right now, you can build it yourself from `android/`
+- the Android app source is public in this repository
+- the public Google Play release is still being prepared
 
-The intended host-side flow is:
-
-```sh
-npm install -g relaydex
-relaydex up
-```
-
-Then pair from the Android app.
-
-If you want to build the Android client from source before the Play release, see [Docs/ANDROID_BUILD_FROM_SOURCE.md](Docs/ANDROID_BUILD_FROM_SOURCE.md).
+If you want to try the Android client now, build it from source from the `android/` directory.
 
 ## Install the Bridge
-
-Install from npm:
-
-```sh
-npm install -g relaydex
-```
-
-To update later:
 
 ```sh
 npm install -g relaydex@latest
 ```
 
-## Architecture
+Run the bridge in the local project directory you want Codex to work on:
 
-```text
-[Android or iOS client]
-          <-> paired relay WebSocket session <->
-[relaydex bridge on host computer]
-          <-> stdin/stdout JSON-RPC <->
-[codex app-server]
+```sh
+relaydex up
 ```
 
-Optional host-side integration:
+Then open the Android app and scan the pairing QR code.
 
-- the Codex desktop app can read persisted sessions from `~/.codex/sessions`
-- desktop refresh remains a macOS-only workaround
+## Build the Android App From Source
 
-## Repository Structure
+If you want to test the Android client before the public Play release:
 
-```text
-remodex/
-|-- phodex-bridge/                # CLI bridge package
-|   |-- bin/                      # CLI entrypoints
-|   `-- src/                      # Bridge runtime and handlers
-|-- android/                      # Android Studio project
-|   `-- app/                      # Kotlin + Compose Android client
-|-- CodexMobile/                  # Upstream iOS source tree
-`-- Docs/                         # Forking and release notes
+1. Open `android/` in Android Studio
+2. Let Gradle sync finish
+3. Connect an Android device or start an emulator
+4. Run the `app` configuration
+
+CLI build path:
+
+```sh
+cd android
+gradlew assembleDebug
 ```
 
-## Windows + Android Quick Start
+The debug APK is typically written to:
 
-See [Docs/WINDOWS_ANDROID_QUICKSTART.md](Docs/WINDOWS_ANDROID_QUICKSTART.md).
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
 
-Short version:
+## Quick Start
 
-1. Install Node.js and Codex CLI on Windows.
-2. Install the bridge package.
-3. Run `relaydex up` in the local project directory.
-4. Open the Android app.
-5. Scan the QR code or paste the pairing payload shown under the QR.
+1. Install Node.js and Codex CLI on Windows
+2. Install the bridge package
+3. Run `relaydex up` in your local project directory
+4. Open the Android app
+5. Scan the QR code or paste the pairing payload shown under the QR
+6. Open or create a thread and send a message
 
 ## Commands
 
@@ -142,76 +104,66 @@ Reopens the last active thread in the local Codex desktop app if available.
 
 Tails the rollout log for a thread in real time.
 
+## Architecture
+
+```text
+[Android client]
+        <-> paired relay WebSocket session <->
+[relaydex bridge on host computer]
+        <-> stdin/stdout JSON-RPC <->
+[codex app-server]
+```
+
+The desktop Codex app can still read persisted sessions from `~/.codex/sessions` when available.
+
+## Project Structure
+
+```text
+remodex/
+|-- phodex-bridge/                # CLI bridge package
+|   |-- bin/                      # CLI entrypoints
+|   `-- src/                      # Bridge runtime and handlers
+|-- android/                      # Android Studio project
+|   `-- app/                      # Kotlin + Compose Android client
+|-- CodexMobile/                  # Upstream iOS source tree kept for protocol reference
+|-- relay/                        # Relay implementation
+`-- assets/                       # Public graphics
+```
+
 ## Android Availability
 
 The Android app is not yet broadly released on Google Play.
 
-Current stance:
-
-- the repository is public now
-- the official Play listing is still being prepared
-- advanced users can build and test the Android client from source
-- if you want the later Play build, you can join the Google Group waitlist
-
-This lets the project be visible early without forcing a public Play rollout before account and contact details are ready.
-
-If you want to track Android release progress:
-
-- closed-test page: `https://ranats.github.io/relaydex/closed-test.html`
-- rollout notes: [Docs/CLOSED_TEST_PLAN.md](Docs/CLOSED_TEST_PLAN.md)
-- recruitment copy: [Docs/TESTER_RECRUITMENT_COPY.md](Docs/TESTER_RECRUITMENT_COPY.md)
-- launch copy: [Docs/LAUNCH_COPY.md](Docs/LAUNCH_COPY.md)
-
-## Try It Now
-
-Right now there are two supported public paths:
+Right now there are two public paths:
 
 1. build the Android app from source and test it yourself
-2. join the Google Group waitlist for the later Play closed test
+2. join the Google Group waitlist for the later Play rollout
 
-Current waitlist link:
+Waitlist:
 
 - `https://groups.google.com/g/relaydex-android-testers`
 
-Important:
-
-- joining the Google Group now does **not** by itself advance the Google Play closed-test requirement
-- the actual Play opt-in and install step will be shared later, after the Play rollout is ready
-- if you want to test immediately, source build is the path to use today
-
-## Self-Hosting
-
-The public repository is meant to stay self-host friendly.
-
-- GitHub source should remain usable without private release secrets
-- you can run a local relay or your own hosted relay
-- the relay is only a transport hop; Codex still runs on your own machine
-
-Start here:
-
-- [SELF_HOSTING_MODEL.md](SELF_HOSTING_MODEL.md)
-- [Docs/self-hosting.md](Docs/self-hosting.md)
+The actual Play opt-in and install step will be shared later.
 
 ## Feedback
 
-Best links to share right now:
+If you tried a source build and hit a bug, pairing issue, reconnect problem, or UI confusion:
 
-- Closed-test guide: `https://ranats.github.io/relaydex/closed-test.html`
-- Issues page: `https://github.com/Ranats/relaydex/issues`
+- GitHub Issues: `https://github.com/Ranats/relaydex/issues`
+- Support email: `saxophonia991@gmail.com`
 
-Suggested Play Console feedback URL:
+Helpful details:
 
-- `mailto:saxophonia991@gmail.com`
-
-Suggested Play Console feedback email:
-
-- `saxophonia991@gmail.com`
+- device model and Android version
+- whether pairing used QR, payload, or reconnect
+- exact steps to reproduce
+- expected result
+- actual result
+- screenshots or logs if available
 
 ## Environment Variables
 
 The bridge accepts both `RELAYDEX_*` names and legacy `REMODEX_*` names.
-
-Common ones:
 
 | Variable | Description |
 |----------|-------------|
@@ -223,39 +175,15 @@ Common ones:
 
 If you are building from source or self-hosting, set these explicitly instead of assuming hosted defaults.
 
-## Bridge Package
+## Self-Hosting
 
-Inside [`phodex-bridge/`](phodex-bridge/), this fork is configured to publish under the npm package name `relaydex`.
+The public repository is meant to stay self-host friendly.
 
-Key behavior:
+- you can run a local relay or your own hosted relay
+- the relay is only a transport hop
+- Codex still runs on your own machine
 
-- starts local `codex app-server`
-- on Windows, launches through `cmd.exe /d /c codex app-server`
-- prints a QR code and raw pairing payload JSON
-- forwards JSON-RPC between the host and the paired phone
-- handles git and workspace operations locally on the host
-
-## Android App
-
-The Android app lives under [`android/`](android/).
-
-Current fork-specific identifiers:
-
-- app name: `Relaydex`
-- package / namespace: `io.relaydex.android`
-- pairing deep-link scheme: `relaydex://pair`
-
-The Android client supports:
-
-- QR pairing
-- raw pairing-payload paste
-- thread list and thread open
-- new thread creation
-- prompt sending
-- streamed Codex output
-- approval prompts
-
-To build it before the Play release, see [Docs/ANDROID_BUILD_FROM_SOURCE.md](Docs/ANDROID_BUILD_FROM_SOURCE.md).
+If you self-host, keep private hostnames, IPs, and credentials out of the public repository.
 
 ## FAQ
 
@@ -265,36 +193,24 @@ Yes. This fork is specifically focused on the Windows host + Android workflow.
 **Does this run Codex on the phone itself?**  
 No. Codex runs on the host machine. The phone is only a paired remote client.
 
-**Can I self-host the relay?**  
-Yes. That is one of the intended public-repo paths. See [Docs/self-hosting.md](Docs/self-hosting.md).
-
 **What happens if I close the terminal running `relaydex up`?**  
 The bridge stops. Start it again to create a new live session.
 
 **How do I force a clean pairing state?**  
 Run `relaydex reset-pairing`, then start the bridge again with `relaydex up`.
 
+**Can I self-host the relay?**  
+Yes. That is one of the intended public-repo paths.
+
 ## Security Notes
 
 The mobile client and bridge use the same end-to-end encrypted session model as upstream Remodex. This fork keeps wire-level compatibility where practical, so some internal field names still say `mac` or `iphone`. Those are protocol leftovers, not actual platform restrictions.
 
-## Forking and Publishing
+## Credits
 
-The upstream project uses the ISC license, so you can fork, modify, and publish your own derivative builds as long as you keep the license and attribution notices.
+Relaydex is an independent fork of [Remodex](https://github.com/Emanuele-web04/remodex), originally created by Emanuele Di Pietro.
 
-Read these before public release:
-
-- [Docs/ANDROID_FORK_GUIDE.md](Docs/ANDROID_FORK_GUIDE.md)
-- [Docs/CLOSED_TEST_PLAN.md](Docs/CLOSED_TEST_PLAN.md)
-- [Docs/WINDOWS_ANDROID_QUICKSTART.md](Docs/WINDOWS_ANDROID_QUICKSTART.md)
-- [Docs/LAUNCH_COPY.md](Docs/LAUNCH_COPY.md)
-- [Docs/PLAY_STORE_COPY.md](Docs/PLAY_STORE_COPY.md)
-- [Docs/PLAY_CONSOLE_SETUP.md](Docs/PLAY_CONSOLE_SETUP.md)
-- [Docs/PRIVACY_POLICY.md](Docs/PRIVACY_POLICY.md)
-- [Docs/PROMO_CODE_FLOW.md](Docs/PROMO_CODE_FLOW.md)
-- [Docs/PROMO_CODE_REQUEST_FORM.md](Docs/PROMO_CODE_REQUEST_FORM.md)
-- [Docs/RELEASE_CHECKLIST.md](Docs/RELEASE_CHECKLIST.md)
-- [Docs/TESTER_RECRUITMENT_COPY.md](Docs/TESTER_RECRUITMENT_COPY.md)
+This repository is not the official Remodex app and is not affiliated with or endorsed by the upstream author.
 
 ## License
 
