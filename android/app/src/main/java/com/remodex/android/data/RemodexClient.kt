@@ -23,6 +23,7 @@ import io.relaydex.android.model.ApprovalRequest
 import io.relaydex.android.model.ClientUpdate
 import io.relaydex.android.model.ConnectionStatus
 import io.relaydex.android.model.ConversationMessage
+import io.relaydex.android.model.ModelOption
 import io.relaydex.android.model.PairingPayload
 import io.relaydex.android.model.PhoneIdentityState
 import io.relaydex.android.model.ThreadSummary
@@ -56,6 +57,11 @@ import java.util.concurrent.ConcurrentHashMap
 
 private const val handshakeModeQrBootstrap = "qr_bootstrap"
 private const val handshakeModeTrustedReconnect = "trusted_reconnect"
+private const val relayOpenTimeoutMs = 12_000L
+private const val secureHandshakeTimeoutMs = 20_000L
+private const val defaultRpcTimeoutMs = 20_000L
+private const val threadReadTimeoutMs = 45_000L
+private const val threadListTimeoutMs = 30_000L
 
 class RemodexClient(
     private val persistence: RemodexPersistence,
@@ -79,11 +85,15 @@ class RemodexClient(
     private var trustedMacRegistry: TrustedMacRegistry = persistence.loadTrustedMacRegistry()
     private var lastAppliedBridgeOutboundSeq: Int = persistence.loadLastAppliedBridgeOutboundSeq()
     private var savedPairingPayload: PairingPayload? = persistence.loadPairing()
+    private var availableModels: List<ModelOption> = emptyList()
+    private var selectedModelId: String? = persistence.loadSelectedModelId()
+    private var selectedReasoningEffort: String? = persistence.loadSelectedReasoningEffort()
 
     val updates: SharedFlow<ClientUpdate> = updatesFlow.asSharedFlow()
 
     init {
         emitPairingAvailability()
+        emitRuntimeConfig()
     }
 
     fun hasSavedPairing(): Boolean = savedPairingPayload != null
@@ -160,7 +170,9 @@ class RemodexClient(
     }
 
     suspend fun startThread(): ThreadSummary {
-        val result = sendRequest("thread/start", JSONObject())
+        val params = JSONObject()
+        runtimeModelIdentifierForTurn()?.let { params.put("model", it) }
+        val result = sendRequest("thread/start", params)
         val thread = decodeThreadSummary(result.optJSONObject("thread") ?: JSONObject())
             ?: throw IllegalStateException("thread/start response did not include a thread.")
         return thread
@@ -168,17 +180,30 @@ class RemodexClient(
 
     suspend fun loadThread(threadId: String): Pair<ThreadSummary?, List<ConversationMessage>> {
         resumeThread(threadId)
-        val result = sendRequest(
-            "thread/read",
-            JSONObject()
-                .put("threadId", threadId)
-                .put("includeTurns", true),
-        )
-        val threadObject = result.optJSONObject("thread") ?: JSONObject()
-        val summary = decodeThreadSummary(threadObject)
-        val messages = decodeMessagesFromThreadRead(threadId, threadObject)
-        updatesFlow.emit(ClientUpdate.ThreadLoaded(summary, messages))
-        return summary to messages
+        return try {
+            val result = sendRequest(
+                "thread/read",
+                JSONObject()
+                    .put("threadId", threadId)
+                    .put("includeTurns", true),
+            )
+            val threadObject = result.optJSONObject("thread") ?: JSONObject()
+            val summary = decodeThreadSummary(threadObject)
+            val messages = decodeMessagesFromThreadRead(threadId, threadObject)
+            updatesFlow.emit(ClientUpdate.ThreadLoaded(summary, messages))
+            summary to messages
+        } catch (error: RpcException) {
+            val lowered = error.message.lowercase(Locale.US)
+            if (
+                lowered.contains("not materialized yet")
+                || lowered.contains("includeturns is unavailable before first user message")
+            ) {
+                updatesFlow.emit(ClientUpdate.ThreadLoaded(null, emptyList()))
+                null to emptyList()
+            } else {
+                throw error
+            }
+        }
     }
 
     suspend fun startTurn(threadId: String, userInput: String) {
@@ -193,7 +218,39 @@ class RemodexClient(
                         .put("text", userInput.trim())
                 )
             )
+        runtimeModelIdentifierForTurn()?.let { params.put("model", it) }
+        selectedReasoningEffortForSelectedModel()?.let { params.put("effort", it) }
         sendRequest("turn/start", params)
+    }
+
+    suspend fun loadRuntimeConfig() {
+        val result = sendRequest(
+            "model/list",
+            JSONObject()
+                .put("cursor", JSONObject.NULL)
+                .put("limit", 50)
+                .put("includeHidden", false)
+        )
+        availableModels = decodeModelOptions(result)
+        normalizeRuntimeSelectionsAfterModelsUpdate()
+        persistence.saveSelectedModelId(selectedModelId)
+        persistence.saveSelectedReasoningEffort(selectedReasoningEffortForSelectedModel())
+        emitRuntimeConfig()
+    }
+
+    suspend fun setSelectedModelId(modelId: String?) {
+        selectedModelId = modelId?.trim()?.takeIf { it.isNotEmpty() }
+        normalizeRuntimeSelectionsAfterModelsUpdate()
+        persistence.saveSelectedModelId(selectedModelId)
+        persistence.saveSelectedReasoningEffort(selectedReasoningEffortForSelectedModel())
+        emitRuntimeConfig()
+    }
+
+    suspend fun setSelectedReasoningEffort(effort: String?) {
+        selectedReasoningEffort = effort?.trim()?.takeIf { it.isNotEmpty() }
+        normalizeRuntimeSelectionsAfterModelsUpdate()
+        persistence.saveSelectedReasoningEffort(selectedReasoningEffortForSelectedModel())
+        emitRuntimeConfig()
     }
 
     suspend fun respondToApproval(request: ApprovalRequest, accept: Boolean) {
@@ -217,11 +274,21 @@ class RemodexClient(
             request,
             object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
-                    openDeferred.complete(Unit)
+                    clientScope.launch {
+                        if (!isCurrentSocket(webSocket)) {
+                            return@launch
+                        }
+                        if (!openDeferred.isCompleted) {
+                            openDeferred.complete(Unit)
+                        }
+                    }
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     clientScope.launch {
+                        if (!isCurrentSocket(webSocket)) {
+                            return@launch
+                        }
                         try {
                             handleIncomingWireText(text)
                         } catch (error: Throwable) {
@@ -236,18 +303,13 @@ class RemodexClient(
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     clientScope.launch {
-                        handleSocketClosed(code)
+                        handleSocketClosed(webSocket, code)
                     }
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     clientScope.launch {
-                        updatesFlow.emit(
-                            ClientUpdate.Connection(
-                                status = ConnectionStatus.DISCONNECTED,
-                                detail = t.message ?: "Relay connection failed.",
-                            )
-                        )
+                        handleSocketFailure(webSocket, t)
                     }
                     if (!openDeferred.isCompleted) {
                         openDeferred.completeExceptionally(t)
@@ -256,13 +318,14 @@ class RemodexClient(
             }
         )
 
-        withTimeout(12_000) {
+        withTimeout(relayOpenTimeoutMs) {
             openDeferred.await()
         }
 
         updatesFlow.emit(ClientUpdate.Connection(ConnectionStatus.HANDSHAKING, "Performing secure handshake..."))
         performSecureHandshake(pairing)
         initializeSession()
+        runCatching { loadRuntimeConfig() }
         updatesFlow.emit(
             ClientUpdate.Connection(
                 status = ConnectionStatus.CONNECTED,
@@ -398,15 +461,11 @@ class RemodexClient(
                 .toString()
         )
 
-        val readyRaw = waitForSecureControlMessage("secureReady")
-        val ready = JSONObject(readyRaw)
-        if (
-            ready.optString("sessionId") != pairing.sessionId
-            || ready.optInt("keyEpoch") != serverHello.optInt("keyEpoch")
-            || ready.optString("macDeviceId") != pairing.macDeviceId
-        ) {
-            throw IllegalStateException("The bridge returned a stale secureReady message.")
-        }
+        waitForMatchingSecureReady(
+            expectedSessionId = pairing.sessionId,
+            expectedKeyEpoch = serverHello.optInt("keyEpoch"),
+            expectedMacDeviceId = pairing.macDeviceId,
+        )
 
         val sharedSecret = deriveSharedSecret(
             privateKey = phoneEphemeralPrivateKey,
@@ -519,7 +578,7 @@ class RemodexClient(
         requestMutex.withLock {
             pendingSecureControlWaiters.getOrPut(kind) { mutableListOf() }.add(deferred)
         }
-        return withTimeout(12_000) { deferred.await() }
+        return withTimeout(secureHandshakeTimeoutMs) { deferred.await() }
     }
 
     private suspend fun handleIncomingWireText(text: String) {
@@ -537,24 +596,39 @@ class RemodexClient(
 
     private suspend fun handleEncryptedEnvelope(envelope: JSONObject) {
         val session = secureSession ?: return
-        if (
-            envelope.optString("sessionId") != session.sessionId
-            || envelope.optInt("keyEpoch") != session.keyEpoch
-            || envelope.optString("sender") != "mac"
-            || envelope.optInt("counter") <= session.lastInboundCounter
-        ) {
-            updatesFlow.emit(ClientUpdate.Connection(ConnectionStatus.RECONNECT_REQUIRED, "The secure envelope could not be verified."))
+        if (envelope.optString("sessionId") != session.sessionId) {
+            return
+        }
+        if (envelope.optInt("keyEpoch") != session.keyEpoch) {
+            return
+        }
+        if (envelope.optString("sender") != "mac") {
             return
         }
 
-        val plaintext = aesGcmDecrypt(
-            key = session.macToPhoneKey,
-            nonce = secureNonce("mac", envelope.optInt("counter")),
-            ciphertext = decodeBase64(envelope.optString("ciphertext")),
-            tag = decodeBase64(envelope.optString("tag")),
-        )
+        val counter = envelope.optInt("counter")
+        if (counter <= session.lastInboundCounter) {
+            return
+        }
+
+        val plaintext = try {
+            aesGcmDecrypt(
+                key = session.macToPhoneKey,
+                nonce = secureNonce("mac", counter),
+                ciphertext = decodeBase64(envelope.optString("ciphertext")),
+                tag = decodeBase64(envelope.optString("tag")),
+            )
+        } catch (_: Throwable) {
+            updatesFlow.emit(
+                ClientUpdate.Connection(
+                    ConnectionStatus.RECONNECT_REQUIRED,
+                    "The secure envelope could not be verified.",
+                )
+            )
+            return
+        }
         val payload = JSONObject(plaintext.toString(Charsets.UTF_8))
-        session.lastInboundCounter = envelope.optInt("counter")
+        session.lastInboundCounter = counter
         val bridgeOutboundSeq = payload.optInt("bridgeOutboundSeq", -1)
         if (bridgeOutboundSeq > lastAppliedBridgeOutboundSeq) {
             lastAppliedBridgeOutboundSeq = bridgeOutboundSeq
@@ -659,7 +733,7 @@ class RemodexClient(
         val responseDeferred = CompletableDeferred<JSONObject>()
         pendingResponses[requestId] = responseDeferred
         sendMessage(request)
-        val response = withTimeout(12_000) { responseDeferred.await() }
+        val response = withTimeout(timeoutForMethod(method)) { responseDeferred.await() }
         val error = response.optJSONObject("error")
         if (error != null) {
             throw RpcException(
@@ -737,7 +811,20 @@ class RemodexClient(
         return envelope.toString()
     }
 
-    private suspend fun handleSocketClosed(code: Int) {
+    private suspend fun handleSocketClosed(closedSocket: WebSocket, code: Int) {
+        val isCurrent = socketMutex.withLock {
+            if (webSocket !== closedSocket) {
+                false
+            } else {
+                webSocket = null
+                openSocketDeferred = null
+                true
+            }
+        }
+        if (!isCurrent) {
+            return
+        }
+
         secureSession = null
         pendingHandshake = null
         clearPendingRequests()
@@ -761,6 +848,22 @@ class RemodexClient(
         }
 
         updatesFlow.emit(ClientUpdate.Connection(ConnectionStatus.DISCONNECTED, "Relay disconnected."))
+    }
+
+    private suspend fun handleSocketFailure(failedSocket: WebSocket, error: Throwable) {
+        val isCurrent = socketMutex.withLock {
+            webSocket === failedSocket
+        }
+        if (!isCurrent) {
+            return
+        }
+
+        updatesFlow.emit(
+            ClientUpdate.Connection(
+                status = ConnectionStatus.DISCONNECTED,
+                detail = error.message ?: "Relay connection failed.",
+            )
+        )
     }
 
     private suspend fun bufferSecureControlMessage(kind: String, rawText: String) {
@@ -799,6 +902,16 @@ class RemodexClient(
             fingerprint(trusted?.macIdentityPublicKey ?: it.macIdentityPublicKey)
         }
         updatesFlow.tryEmit(ClientUpdate.PairingAvailability(pairing != null, currentFingerprint))
+    }
+
+    private fun emitRuntimeConfig() {
+        updatesFlow.tryEmit(
+            ClientUpdate.RuntimeConfigLoaded(
+                models = availableModels,
+                selectedModelId = selectedModelOption()?.stableIdentifier ?: selectedModelId,
+                selectedReasoningEffort = selectedReasoningEffortForSelectedModel(),
+            )
+        )
     }
 
     private fun parsePairingPayload(rawPayload: String): PairingPayload {
@@ -898,6 +1011,88 @@ class RemodexClient(
         val outstanding = pendingResponses.values.toList()
         pendingResponses.clear()
         outstanding.forEach { it.completeExceptionally(IllegalStateException("Disconnected")) }
+    }
+
+    private fun normalizeRuntimeSelectionsAfterModelsUpdate() {
+        if (availableModels.isEmpty()) {
+            selectedReasoningEffort = null
+            return
+        }
+
+        val resolvedModel = selectedModelOption() ?: fallbackModel()
+        selectedModelId = resolvedModel?.stableIdentifier
+
+        if (resolvedModel == null) {
+            selectedReasoningEffort = null
+            return
+        }
+
+        val supported = resolvedModel.supportedReasoningEfforts.map { it.reasoningEffort }.toSet()
+        selectedReasoningEffort = when {
+            supported.isEmpty() -> null
+            selectedReasoningEffort != null && supported.contains(selectedReasoningEffort) -> selectedReasoningEffort
+            resolvedModel.defaultReasoningEffort != null && supported.contains(resolvedModel.defaultReasoningEffort) -> resolvedModel.defaultReasoningEffort
+            supported.contains("medium") -> "medium"
+            else -> resolvedModel.supportedReasoningEfforts.firstOrNull()?.reasoningEffort
+        }
+    }
+
+    private fun selectedModelOption(): ModelOption? {
+        val current = selectedModelId ?: return null
+        return availableModels.firstOrNull { it.id == current || it.model == current }
+    }
+
+    private fun fallbackModel(): ModelOption? {
+        return availableModels.firstOrNull { it.isDefault } ?: availableModels.firstOrNull()
+    }
+
+    private fun runtimeModelIdentifierForTurn(): String? {
+        return selectedModelOption()?.model ?: fallbackModel()?.model
+    }
+
+    private fun selectedReasoningEffortForSelectedModel(): String? {
+        val model = selectedModelOption() ?: fallbackModel() ?: return null
+        val supported = model.supportedReasoningEfforts.map { it.reasoningEffort }.toSet()
+        if (supported.isEmpty()) {
+            return null
+        }
+
+        return when {
+            selectedReasoningEffort != null && supported.contains(selectedReasoningEffort) -> selectedReasoningEffort
+            model.defaultReasoningEffort != null && supported.contains(model.defaultReasoningEffort) -> model.defaultReasoningEffort
+            supported.contains("medium") -> "medium"
+            else -> model.supportedReasoningEfforts.firstOrNull()?.reasoningEffort
+        }
+    }
+
+    private suspend fun isCurrentSocket(candidate: WebSocket): Boolean {
+        return socketMutex.withLock { webSocket === candidate }
+    }
+
+    private fun timeoutForMethod(method: String): Long {
+        return when (method) {
+            "thread/read" -> threadReadTimeoutMs
+            "thread/list" -> threadListTimeoutMs
+            else -> defaultRpcTimeoutMs
+        }
+    }
+
+    private suspend fun waitForMatchingSecureReady(
+        expectedSessionId: String,
+        expectedKeyEpoch: Int,
+        expectedMacDeviceId: String,
+    ) {
+        while (true) {
+            val raw = waitForSecureControlMessage("secureReady")
+            val ready = JSONObject(raw)
+            if (
+                ready.optString("sessionId") == expectedSessionId
+                && ready.optInt("keyEpoch") == expectedKeyEpoch
+                && ready.optString("macDeviceId") == expectedMacDeviceId
+            ) {
+                return
+            }
+        }
     }
 
     data class RpcException(

@@ -136,6 +136,24 @@ data class ThreadSummary(
             ?: "No Project"
 }
 
+data class ReasoningEffortOption(
+    val reasoningEffort: String,
+    val description: String,
+)
+
+data class ModelOption(
+    val id: String,
+    val model: String,
+    val displayName: String,
+    val description: String,
+    val isDefault: Boolean,
+    val supportedReasoningEfforts: List<ReasoningEffortOption>,
+    val defaultReasoningEffort: String?,
+) {
+    val stableIdentifier: String
+        get() = id.ifBlank { model }
+}
+
 enum class ConversationRole {
     USER,
     ASSISTANT,
@@ -197,6 +215,12 @@ sealed interface ClientUpdate {
     data class ThreadLoaded(
         val thread: ThreadSummary?,
         val messages: List<ConversationMessage>,
+    ) : ClientUpdate
+
+    data class RuntimeConfigLoaded(
+        val models: List<ModelOption>,
+        val selectedModelId: String?,
+        val selectedReasoningEffort: String?,
     ) : ClientUpdate
 
     data class AssistantDelta(

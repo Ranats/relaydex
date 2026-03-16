@@ -11,6 +11,7 @@ import io.relaydex.android.model.ConnectionStatus
 import io.relaydex.android.model.ConversationKind
 import io.relaydex.android.model.ConversationMessage
 import io.relaydex.android.model.ConversationRole
+import io.relaydex.android.model.ModelOption
 import io.relaydex.android.model.ThreadSummary
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +32,11 @@ data class RemodexUiState(
     val messages: List<ConversationMessage> = emptyList(),
     val composerText: String = "",
     val isBusy: Boolean = false,
+    val busyLabel: String? = null,
+    val isLoadingRuntimeConfig: Boolean = false,
+    val availableModels: List<ModelOption> = emptyList(),
+    val selectedModelId: String? = null,
+    val selectedReasoningEffort: String? = null,
     val errorMessage: String? = null,
     val pendingApproval: ApprovalRequest? = null,
 )
@@ -101,7 +107,7 @@ class MainViewModel(
     }
 
     fun refreshThreads() {
-        runBusyAction {
+        runBusyAction("Loading threads...") {
             repository.refreshThreads()
         }
     }
@@ -115,7 +121,7 @@ class MainViewModel(
             )
         }
 
-        runBusyAction {
+        runBusyAction("Loading messages...") {
             repository.loadThread(threadId)
         }
     }
@@ -131,14 +137,13 @@ class MainViewModel(
     }
 
     fun createThread() {
-        runBusyAction {
+        runBusyAction("Creating thread...") {
             val thread = repository.startThread()
             repository.refreshThreads()
-            repository.loadThread(thread.id)
             uiStateFlow.update { current ->
                 current.copy(
                     selectedThreadId = thread.id,
-                    selectedThreadTitle = thread.title,
+                    selectedThreadTitle = thread.title.ifBlank { "Conversation" },
                     messages = emptyList(),
                 )
             }
@@ -151,7 +156,7 @@ class MainViewModel(
             return
         }
 
-        runBusyAction {
+        runBusyAction("Sending message...") {
             val threadId = uiStateFlow.value.selectedThreadId ?: repository.startThread().id.also { newThreadId ->
                 repository.refreshThreads()
                 uiStateFlow.update { current ->
@@ -182,14 +187,38 @@ class MainViewModel(
 
     fun respondToApproval(accept: Boolean) {
         val request = uiStateFlow.value.pendingApproval ?: return
-        runBusyAction {
+        runBusyAction("Sending approval...") {
             repository.respondToApproval(request, accept)
         }
     }
 
-    private fun runBusyAction(block: suspend () -> Unit) {
+    fun loadRuntimeConfig() {
         viewModelScope.launch {
-            uiStateFlow.update { it.copy(isBusy = true) }
+            uiStateFlow.update { it.copy(isLoadingRuntimeConfig = true) }
+            try {
+                repository.loadRuntimeConfig()
+            } catch (_: Throwable) {
+            } finally {
+                uiStateFlow.update { it.copy(isLoadingRuntimeConfig = false) }
+            }
+        }
+    }
+
+    fun selectModel(modelId: String?) {
+        viewModelScope.launch {
+            repository.setSelectedModelId(modelId)
+        }
+    }
+
+    fun selectReasoningEffort(effort: String?) {
+        viewModelScope.launch {
+            repository.setSelectedReasoningEffort(effort)
+        }
+    }
+
+    private fun runBusyAction(label: String? = null, block: suspend () -> Unit) {
+        viewModelScope.launch {
+            uiStateFlow.update { it.copy(isBusy = true, busyLabel = label) }
             try {
                 block()
             } catch (error: Throwable) {
@@ -197,7 +226,7 @@ class MainViewModel(
                     it.copy(errorMessage = error.message ?: "Request failed.")
                 }
             } finally {
-                uiStateFlow.update { it.copy(isBusy = false) }
+                uiStateFlow.update { it.copy(isBusy = false, busyLabel = null) }
             }
         }
     }
@@ -211,6 +240,9 @@ class MainViewModel(
                         connectionDetail = update.detail,
                         secureFingerprint = update.fingerprint ?: it.secureFingerprint,
                     )
+                }
+                if (update.status == ConnectionStatus.CONNECTED) {
+                    loadRuntimeConfig()
                 }
             }
 
@@ -238,6 +270,16 @@ class MainViewModel(
                     current.copy(
                         selectedThreadTitle = update.thread?.title ?: current.selectedThreadTitle,
                         messages = update.messages,
+                    )
+                }
+            }
+
+            is ClientUpdate.RuntimeConfigLoaded -> {
+                uiStateFlow.update {
+                    it.copy(
+                        availableModels = update.models,
+                        selectedModelId = update.selectedModelId,
+                        selectedReasoningEffort = update.selectedReasoningEffort,
                     )
                 }
             }

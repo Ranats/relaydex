@@ -3,6 +3,8 @@ package io.relaydex.android.data
 import io.relaydex.android.model.ConversationKind
 import io.relaydex.android.model.ConversationMessage
 import io.relaydex.android.model.ConversationRole
+import io.relaydex.android.model.ModelOption
+import io.relaydex.android.model.ReasoningEffortOption
 import io.relaydex.android.model.ThreadSummary
 import org.json.JSONArray
 import org.json.JSONObject
@@ -248,6 +250,52 @@ fun decodeMessagesFromThreadRead(threadId: String, threadObject: JSONObject): Li
     }
 
     return messages.sortedBy { it.createdAtEpochMs }
+}
+
+fun decodeModelOptions(resultObject: JSONObject): List<ModelOption> {
+    val items = resultObject.optJSONArray("items")
+        ?: resultObject.optJSONArray("data")
+        ?: resultObject.optJSONArray("models")
+        ?: JSONArray()
+
+    val decoded = mutableListOf<ModelOption>()
+    for (index in 0 until items.length()) {
+        val item = items.optJSONObject(index) ?: continue
+        val model = item.stringOrNull("model", "id") ?: continue
+        val id = item.stringOrNull("id") ?: model
+        val displayName = item.stringOrNull("displayName", "display_name") ?: model
+        val description = item.stringOrNull("description") ?: ""
+        val isDefault = item.optBoolean("isDefault", item.optBoolean("is_default", false))
+        val supportedEfforts = decodeReasoningEffortOptions(
+            item.optJSONArray("supportedReasoningEfforts")
+                ?: item.optJSONArray("supported_reasoning_efforts")
+                ?: JSONArray()
+        )
+        val defaultReasoningEffort = item.stringOrNull("defaultReasoningEffort", "default_reasoning_effort")
+        decoded += ModelOption(
+            id = id,
+            model = model,
+            displayName = displayName,
+            description = description,
+            isDefault = isDefault,
+            supportedReasoningEfforts = supportedEfforts,
+            defaultReasoningEffort = defaultReasoningEffort,
+        )
+    }
+    return decoded
+}
+
+private fun decodeReasoningEffortOptions(items: JSONArray): List<ReasoningEffortOption> {
+    val decoded = mutableListOf<ReasoningEffortOption>()
+    for (index in 0 until items.length()) {
+        val item = items.optJSONObject(index) ?: continue
+        val effort = item.stringOrNull("reasoningEffort", "reasoning_effort") ?: continue
+        decoded += ReasoningEffortOption(
+            reasoningEffort = effort,
+            description = item.stringOrNull("description") ?: "",
+        )
+    }
+    return decoded
 }
 
 private fun decodeItemText(itemObject: JSONObject): String {

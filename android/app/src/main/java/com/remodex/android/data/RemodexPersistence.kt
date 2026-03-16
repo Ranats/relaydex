@@ -52,10 +52,38 @@ class RemodexPersistence(context: Context) {
         secureStore.writeString(KEY_LAST_APPLIED_SEQ, value.toString())
     }
 
+    fun loadSelectedModelId(): String? {
+        return secureStore.readString(KEY_SELECTED_MODEL_ID)?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    fun saveSelectedModelId(value: String?) {
+        val normalized = value?.trim()?.takeIf { it.isNotEmpty() }
+        if (normalized == null) {
+            secureStore.remove(KEY_SELECTED_MODEL_ID)
+        } else {
+            secureStore.writeString(KEY_SELECTED_MODEL_ID, normalized)
+        }
+    }
+
+    fun loadSelectedReasoningEffort(): String? {
+        return secureStore.readString(KEY_SELECTED_REASONING_EFFORT)?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    fun saveSelectedReasoningEffort(value: String?) {
+        val normalized = value?.trim()?.takeIf { it.isNotEmpty() }
+        if (normalized == null) {
+            secureStore.remove(KEY_SELECTED_REASONING_EFFORT)
+        } else {
+            secureStore.writeString(KEY_SELECTED_REASONING_EFFORT, normalized)
+        }
+    }
+
     private companion object {
         const val KEY_PAIRING = "pairing_payload"
         const val KEY_PHONE_IDENTITY = "phone_identity"
         const val KEY_TRUSTED_MACS = "trusted_macs"
         const val KEY_LAST_APPLIED_SEQ = "last_applied_bridge_outbound_seq"
+        const val KEY_SELECTED_MODEL_ID = "selected_model_id"
+        const val KEY_SELECTED_REASONING_EFFORT = "selected_reasoning_effort"
     }
 }

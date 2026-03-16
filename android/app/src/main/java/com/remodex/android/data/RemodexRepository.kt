@@ -4,6 +4,7 @@ import android.content.Context
 import io.relaydex.android.model.ApprovalRequest
 import io.relaydex.android.model.ClientUpdate
 import io.relaydex.android.model.ConversationMessage
+import io.relaydex.android.model.ModelOption
 import io.relaydex.android.model.ThreadSummary
 import kotlinx.coroutines.flow.SharedFlow
 
@@ -39,6 +40,18 @@ class RemodexRepository(context: Context) {
 
     suspend fun startTurn(threadId: String, userInput: String) {
         client.startTurn(threadId, userInput)
+    }
+
+    suspend fun loadRuntimeConfig() {
+        client.loadRuntimeConfig()
+    }
+
+    suspend fun setSelectedModelId(modelId: String?) {
+        client.setSelectedModelId(modelId)
+    }
+
+    suspend fun setSelectedReasoningEffort(effort: String?) {
+        client.setSelectedReasoningEffort(effort)
     }
 
     suspend fun respondToApproval(request: ApprovalRequest, accept: Boolean) {

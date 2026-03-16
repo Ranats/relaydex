@@ -1,6 +1,7 @@
 package io.relaydex.android
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,13 +28,19 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,13 +54,16 @@ import io.relaydex.android.model.ApprovalRequest
 import io.relaydex.android.model.ConnectionStatus
 import io.relaydex.android.model.ConversationMessage
 import io.relaydex.android.model.ConversationRole
+import io.relaydex.android.model.ModelOption
 import io.relaydex.android.model.ThreadSummary
 import java.text.DateFormat
 import java.util.Date
+import kotlinx.coroutines.launch
 
 @Composable
 fun RemodexApp(viewModel: MainViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val settingsOpen = remember { mutableStateOf(false) }
     val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
         result.contents?.let(viewModel::updatePairingInput)
     }
@@ -78,6 +89,19 @@ fun RemodexApp(viewModel: MainViewModel) {
         )
     }
 
+    if (settingsOpen.value) {
+        RuntimeSettingsDialog(
+            models = state.availableModels,
+            selectedModelId = state.selectedModelId,
+            selectedReasoningEffort = state.selectedReasoningEffort,
+            isLoading = state.isLoadingRuntimeConfig,
+            onDismiss = { settingsOpen.value = false },
+            onReload = viewModel::loadRuntimeConfig,
+            onSelectModel = viewModel::selectModel,
+            onSelectReasoning = viewModel::selectReasoningEffort,
+        )
+    }
+
     if (state.selectedThreadId == null) {
         if (state.connectionStatus == ConnectionStatus.CONNECTED) {
             ThreadListScreen(
@@ -87,6 +111,7 @@ fun RemodexApp(viewModel: MainViewModel) {
                 onRefresh = viewModel::refreshThreads,
                 onCreateThread = viewModel::createThread,
                 onOpenThread = viewModel::openThread,
+                onOpenSettings = { settingsOpen.value = true },
             )
         } else {
             PairingScreen(
@@ -177,6 +202,8 @@ private fun PairingScreen(
                 fingerprint = state.secureFingerprint,
             )
 
+            BusyBanner(state = state)
+
             Text(
                 text = "Run `relaydex up` on your Windows PC or Mac, then scan the QR code from Android or paste the pairing payload shown under the QR.",
                 style = MaterialTheme.typography.bodyLarge,
@@ -236,12 +263,14 @@ private fun ThreadListScreen(
     onRefresh: () -> Unit,
     onCreateThread: () -> Unit,
     onOpenThread: (String) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Threads") },
                 actions = {
+                    TextButton(onClick = onOpenSettings) { Text("Settings") }
                     TextButton(onClick = onRefresh) { Text("Refresh") }
                     TextButton(onClick = onDisconnect) { Text("Disconnect") }
                     TextButton(onClick = onForgetPairing) { Text("Forget") }
@@ -266,6 +295,8 @@ private fun ThreadListScreen(
                 detail = state.connectionDetail,
                 fingerprint = state.secureFingerprint,
             )
+
+            BusyBanner(state = state)
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -326,6 +357,27 @@ private fun ThreadDetailScreen(
     onComposerChanged: (String) -> Unit,
     onSend: () -> Unit,
 ) {
+    BackHandler(onBack = onBack)
+    val listState = remember { LazyListState() }
+    val coroutineScope = rememberCoroutineScope()
+    val showJumpToLatest by remember {
+        derivedStateOf {
+            val totalItems = listState.layoutInfo.totalItemsCount
+            if (totalItems == 0) {
+                false
+            } else {
+                val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+                lastVisibleIndex < totalItems - 1
+            }
+        }
+    }
+
+    LaunchedEffect(state.selectedThreadId, state.messages.size) {
+        if (state.messages.isNotEmpty()) {
+            listState.scrollToItem(state.messages.lastIndex)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -353,14 +405,38 @@ private fun ThreadDetailScreen(
                 fingerprint = state.secureFingerprint,
             )
 
-            LazyColumn(
+            BusyBanner(state = state)
+
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .weight(1f)
             ) {
-                items(state.messages, key = { it.id }) { message ->
-                    MessageBubble(message = message)
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(state.messages, key = { it.id }) { message ->
+                        MessageBubble(message = message)
+                    }
+                }
+
+                if (showJumpToLatest) {
+                    OutlinedButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                if (state.messages.isNotEmpty()) {
+                                    listState.animateScrollToItem(state.messages.lastIndex)
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(12.dp),
+                    ) {
+                        Text("Latest")
+                    }
                 }
             }
 
@@ -428,6 +504,140 @@ private fun MessageBubble(message: ConversationMessage) {
                     text = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
                         .format(Date(message.createdAtEpochMs)),
                     style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BusyBanner(state: RemodexUiState) {
+    val label = state.busyLabel ?: if (state.isLoadingRuntimeConfig) "Loading models..." else null
+    if (!state.isBusy && !state.isLoadingRuntimeConfig) {
+        return
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+            Text(
+                text = label ?: "Working...",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RuntimeSettingsDialog(
+    models: List<ModelOption>,
+    selectedModelId: String?,
+    selectedReasoningEffort: String?,
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onReload: () -> Unit,
+    onSelectModel: (String?) -> Unit,
+    onSelectReasoning: (String?) -> Unit,
+) {
+    val selectedModel = models.firstOrNull { it.id == selectedModelId || it.model == selectedModelId }
+        ?: models.firstOrNull { it.isDefault }
+        ?: models.firstOrNull()
+    val supportedEfforts = selectedModel?.supportedReasoningEfforts.orEmpty()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+        dismissButton = {
+            TextButton(onClick = onReload) { Text("Reload") }
+        },
+        title = { Text("Runtime Settings") },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                item {
+                    Text(
+                        text = if (isLoading) "Loading models..." else "Choose the model and reasoning effort used for new turns.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                item {
+                    Text("Model", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                }
+                item {
+                    RuntimeOptionRow(
+                        title = "Auto",
+                        subtitle = selectedModel?.displayName?.takeIf { it.isNotBlank() }?.let { "Default: $it" },
+                        selected = selectedModelId == null,
+                        onClick = { onSelectModel(null) },
+                    )
+                }
+                items(models, key = { it.stableIdentifier }) { model ->
+                    RuntimeOptionRow(
+                        title = model.displayName,
+                        subtitle = model.description.ifBlank { model.model },
+                        selected = selectedModelId == model.stableIdentifier || selectedModelId == model.model,
+                        onClick = { onSelectModel(model.stableIdentifier) },
+                    )
+                }
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Reasoning", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                }
+                item {
+                    RuntimeOptionRow(
+                        title = "Auto",
+                        subtitle = selectedModel?.defaultReasoningEffort?.let { "Default: $it" },
+                        selected = selectedReasoningEffort == null,
+                        onClick = { onSelectReasoning(null) },
+                    )
+                }
+                items(supportedEfforts, key = { it.reasoningEffort }) { effort ->
+                    RuntimeOptionRow(
+                        title = effort.reasoningEffort,
+                        subtitle = effort.description,
+                        selected = selectedReasoningEffort == effort.reasoningEffort,
+                        onClick = { onSelectReasoning(effort.reasoningEffort) },
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun RuntimeOptionRow(
+    title: String,
+    subtitle: String?,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            subtitle?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
