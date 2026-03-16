@@ -5,7 +5,6 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import java.security.KeyStore
-import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -13,7 +12,6 @@ import javax.crypto.spec.GCMParameterSpec
 
 class SecureStore(context: Context) {
     private val preferences = context.getSharedPreferences("relaydex.secure", Context.MODE_PRIVATE)
-    private val secureRandom = SecureRandom()
 
     fun readString(key: String): String? {
         val stored = preferences.getString(key, null) ?: return null
@@ -30,9 +28,8 @@ class SecureStore(context: Context) {
 
     private fun encrypt(plaintext: String): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)
-        val iv = ByteArray(12)
-        secureRandom.nextBytes(iv)
-        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecretKey(), GCMParameterSpec(128, iv))
+        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecretKey())
+        val iv = cipher.iv ?: error("Cipher did not generate an IV.")
         val ciphertext = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
         val payload = ByteArray(iv.size + ciphertext.size)
         System.arraycopy(iv, 0, payload, 0, iv.size)

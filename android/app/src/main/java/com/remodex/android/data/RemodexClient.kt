@@ -512,7 +512,7 @@ class RemodexClient(
 
         val buffered = bufferedSecureControlMessages[kind]
         if (buffered != null && buffered.isNotEmpty()) {
-            return buffered.removeFirst()
+            return buffered.pollFirst() ?: error("Buffered secure control message missing.")
         }
 
         val deferred = CompletableDeferred<String>()
@@ -782,7 +782,7 @@ class RemodexClient(
                 bufferedSecureControlMessages.getOrPut(kind) { ArrayDeque() }.add(rawText)
                 null
             } else {
-                waiters.removeFirst().also {
+                waiters.removeAt(0).also {
                     if (waiters.isEmpty()) {
                         pendingSecureControlWaiters.remove(kind)
                     }
@@ -878,7 +878,7 @@ class RemodexClient(
             if (buffered.isNullOrEmpty()) {
                 null
             } else {
-                buffered.removeFirst()
+                buffered.pollFirst()
             }
         } ?: return null
         return JSONObject(raw).optString("message")

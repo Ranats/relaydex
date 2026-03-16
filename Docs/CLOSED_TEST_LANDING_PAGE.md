@@ -30,13 +30,19 @@ Important:
 
 `https://play.google.com/apps/testing/io.relaydex.android`
 
-### Step 3: Install the app
+### Step 3: Request one promo code
 
-After opting in, install the app from Google Play:
+Google Play may still show the paid price before redemption.
+
+Approved closed testers should receive one free promo code after joining the tester group and completing Play opt-in.
+
+### Step 4: Install the app
+
+After redeeming the promo code, install the app from Google Play:
 
 `https://play.google.com/store/apps/details?id=io.relaydex.android`
 
-### Step 4: Stay opted in
+### Step 5: Stay opted in
 
 Please keep the app installed and remain opted in for at least 14 days.
 

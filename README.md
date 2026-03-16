@@ -102,14 +102,17 @@ If you want to help test the Android app:
 
 1. Join the tester group: `https://groups.google.com/g/relaydex-android-testers`
 2. Opt in on Google Play: `https://play.google.com/apps/testing/io.relaydex.android`
-3. Install the app from Google Play: `https://play.google.com/store/apps/details?id=io.relaydex.android`
-4. Keep the app installed and remain opted in for at least 14 days
+3. Request one promo code for the paid app
+4. Redeem the code and install the app from Google Play: `https://play.google.com/store/apps/details?id=io.relaydex.android`
+5. Keep the app installed and remain opted in for at least 14 days
 
 Notes:
 
 - This is an independent fork of Remodex, not the official Remodex app.
 - The Android app is only the remote control client.
 - Codex still runs locally on your own computer.
+- Google Play may show the paid price before redemption.
+- Closed testers should receive one free promo code after joining the group and opting in.
 
 Recruitment and rollout docs:
 
@@ -167,6 +170,8 @@ Read these before public release:
 - [Docs/PLAY_STORE_COPY.md](Docs/PLAY_STORE_COPY.md)
 - [Docs/PLAY_CONSOLE_SETUP.md](Docs/PLAY_CONSOLE_SETUP.md)
 - [Docs/PRIVACY_POLICY.md](Docs/PRIVACY_POLICY.md)
+- [Docs/PROMO_CODE_FLOW.md](Docs/PROMO_CODE_FLOW.md)
+- [Docs/PROMO_CODE_REQUEST_FORM.md](Docs/PROMO_CODE_REQUEST_FORM.md)
 - [Docs/RELEASE_CHECKLIST.md](Docs/RELEASE_CHECKLIST.md)
 - [Docs/TESTER_RECRUITMENT_COPY.md](Docs/TESTER_RECRUITMENT_COPY.md)
 
