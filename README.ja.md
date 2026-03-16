@@ -4,6 +4,10 @@
 
 # Relaydex
 
+[![npm version](https://img.shields.io/npm/v/relaydex)](https://www.npmjs.com/package/relaydex)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
+[Follow on X](https://x.com/Ranats85)
+
 [English README](README.md)
 
 Relaydex は、[Remodex](https://github.com/Emanuele-web04/remodex) をベースにした独立 fork です。目的はひとつに絞っています。

@@ -4,6 +4,10 @@
 
 # Relaydex
 
+[![npm version](https://img.shields.io/npm/v/relaydex)](https://www.npmjs.com/package/relaydex)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
+[Follow on X](https://x.com/Ranats85)
+
 [Japanese README](README.ja.md)
 
 Relaydex is an independent fork of [Remodex](https://github.com/Emanuele-web04/remodex) focused on one workflow:
