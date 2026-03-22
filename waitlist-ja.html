@@ -241,7 +241,7 @@
         Relaydex は、Windows 上で動くローカル Codex を Android から操作するための independent fork です。
       </p>
       <p class="note">
-        現時点では、Android アプリは source build で試すか、後日の Google Play rollout に向けて waitlist に登録する形が前提です。
+        現在の Android 版は、source build で先に試すか、後日の Google Play 配布に向けて waitlist に登録する形で案内しています。
       </p>
       <p class="lang-switch">
         English: <a href="https://ranats.github.io/relaydex/waitlist.html">waitlist.html</a>
@@ -257,7 +257,7 @@
               <input type="radio" name="interest_type" value="source_build_now" checked>
               <span>
                 <strong>source build ですぐ試す</strong>
-                Android アプリを source build して、今すぐ手元で試したいです。
+                Android アプリを自分でビルドして、今すぐ手元で動作を試したいです。
               </span>
             </label>
           </div>
@@ -266,12 +266,12 @@
               <input type="radio" name="interest_type" value="play_waitlist_later">
               <span>
                 <strong>Play waitlist に登録する</strong>
-                Google Play での案内が出たら連絡を受け取りたいです。
+                Google Play で案内を出せるようになったら、連絡を受け取りたいです。
               </span>
             </label>
           </div>
           <p class="note small">
-            この waitlist 登録だけでは、Google Play の closed test 条件はまだ進みません。実際の Play opt-in 手順は後日案内します。
+            この waitlist 登録だけで Google Play の closed test 条件が進むわけではありません。実際の Play opt-in 手順は、準備が整ってから別途案内します。
           </p>
         </div>
 
@@ -311,15 +311,15 @@
             <button id="submit-button" type="submit">送信する</button>
           </form>
           <p class="note small">
-            このフォームは Google Apps Script とスプレッドシートに送信されます。
+            送信内容は Google Apps Script 経由でスプレッドシートに記録されます。
           </p>
         </div>
       </section>
 
       <section id="result-source" class="panel result">
-        <h2>source build で試す方向けの案内です</h2>
+        <h2>source build ですぐ試したい方向けの案内です</h2>
         <p class="note">
-          Android アプリを source build して、Windows 側で <code>relaydex up</code> を実行し、Android からペアリングしてください。
+          Android アプリを source build し、Windows 側で <code>relaydex up</code> を実行して、Android からペアリングしてください。
         </p>
         <div class="links">
           <a class="cta" href="https://github.com/Ranats/relaydex/blob/main/README.ja.md#android-アプリを-source-build-する">日本語 README の build 手順
@@ -337,7 +337,7 @@
       <section id="result-waitlist" class="panel result">
         <h2>Play waitlist に登録しました</h2>
         <p class="note">
-          後日の Play rollout に向けてメールアドレスを記録しました。Play 側の準備ができたら、Google Group や Play opt-in の案内に進めます。
+          後日の Play 配布に向けて、メールアドレスを記録しました。Play 側の準備ができたら、Google Group や Play opt-in の案内に進めます。
         </p>
         <div class="links">
           <a class="cta" href="https://groups.google.com/g/relaydex-android-testers">Google Group を開く
@@ -350,6 +350,9 @@
             <small>https://x.com/Ranats85</small>
           </a>
         </div>
+        <p class="note">
+          先に Google Groups で <strong>relaydex-android-testers</strong> を検索して参加しておいても大丈夫です。
+        </p>
       </section>
     </div>
 

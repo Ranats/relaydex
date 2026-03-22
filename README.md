@@ -18,6 +18,26 @@ Relaydex is an independent fork of [Remodex](https://github.com/Emanuele-web04/r
 
 Relaydex is local-first. Codex keeps running on your host computer, while the phone acts as a paired remote control client over a secure session.
 
+## Contents
+
+- [What It Is](#what-it-is)
+- [Key Features](#key-features)
+- [Current Status](#current-status)
+- [Install the Bridge](#install-the-bridge)
+- [Build the Android App From Source](#build-the-android-app-from-source)
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Android Availability](#android-availability)
+- [Feedback](#feedback)
+- [Environment Variables](#environment-variables)
+- [Self-Hosting](#self-hosting)
+- [FAQ](#faq)
+- [Security Notes](#security-notes)
+- [Credits](#credits)
+- [License](#license)
+
 ## What It Is
 
 Relaydex does **not** run Codex on the phone itself.
@@ -145,12 +165,12 @@ Right now there are two public paths:
 
 Recommended waitlist page:
 
-- `https://ranats.github.io/relaydex/waitlist.html`
-- `https://ranats.github.io/relaydex/waitlist-ja.html`
+- [Waitlist page in English](https://ranats.github.io/relaydex/waitlist.html)
+- [Waitlist page in Japanese](https://ranats.github.io/relaydex/waitlist-ja.html)
 
-Direct Google Group link:
+If you want to be ready for the later Play rollout, you can also search for `relaydex-android-testers` in Google Groups and join from there.
 
-- `https://groups.google.com/g/relaydex-android-testers`
+- [Google Groups search entry point](https://groups.google.com/)
 
 The actual Play opt-in and install step will be shared later.
 
