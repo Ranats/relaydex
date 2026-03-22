@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,7 +19,7 @@
 
     body {
       margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
+      font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
       color: #1f1c17;
       background: radial-gradient(circle at top left, #fffaf0 0, #f2dfc3 42%, #d9e9e2 100%);
     }
@@ -53,9 +53,9 @@
     h1 {
       margin: 0 0 16px;
       color: var(--ink);
-      font-size: clamp(40px, 7vw, 72px);
-      line-height: 0.94;
-      letter-spacing: -0.04em;
+      font-size: clamp(38px, 7vw, 68px);
+      line-height: 1.02;
+      letter-spacing: -0.03em;
     }
 
     h2 {
@@ -67,8 +67,8 @@
     .lead {
       margin: 0;
       max-width: 720px;
-      font-size: 21px;
-      line-height: 1.5;
+      font-size: 20px;
+      line-height: 1.6;
     }
 
     .lang-switch {
@@ -98,7 +98,7 @@
     .note {
       margin-top: 16px;
       color: #36433e;
-      line-height: 1.6;
+      line-height: 1.7;
     }
 
     .small {
@@ -142,14 +142,13 @@
       color: var(--ink);
     }
 
-    input, textarea, select, button {
+    input, textarea, button {
       font: inherit;
     }
 
     input[type="email"],
     input[type="text"],
-    textarea,
-    select {
+    textarea {
       width: 100%;
       padding: 14px 16px;
       border-radius: 14px;
@@ -237,28 +236,28 @@
   <main>
     <section class="hero">
       <div class="eyebrow">Relaydex Waitlist</div>
-      <h1>Try it now from source, or join the later Play rollout.</h1>
+      <h1>今すぐ source build で試すか、後日の Play 配布を待つか選べます。</h1>
       <p class="lead">
-        Relaydex is an independent fork of Remodex focused on controlling local Codex running on your own Windows PC from Android.
+        Relaydex は、Windows 上で動くローカル Codex を Android から操作するための independent fork です。
       </p>
       <p class="note">
-        Right now, the Android app is best treated as a source-build project with a waitlist for the later Google Play rollout.
+        現時点では、Android アプリは source build で試すか、後日の Google Play rollout に向けて waitlist に登録する形が前提です。
       </p>
       <p class="lang-switch">
-        日本語: <a href="https://ranats.github.io/relaydex/waitlist-ja.html">waitlist-ja.html</a>
+        English: <a href="https://ranats.github.io/relaydex/waitlist.html">waitlist.html</a>
       </p>
     </section>
 
     <div class="grid">
       <section class="panel split">
         <div>
-          <h2>Choose your path</h2>
+          <h2>試し方を選ぶ</h2>
           <div class="option">
             <label>
               <input type="radio" name="interest_type" value="source_build_now" checked>
               <span>
-                <strong>Source build now</strong>
-                I want to build the Android app from source and try it right away.
+                <strong>source build ですぐ試す</strong>
+                Android アプリを source build して、今すぐ手元で試したいです。
               </span>
             </label>
           </div>
@@ -266,88 +265,88 @@
             <label>
               <input type="radio" name="interest_type" value="play_waitlist_later">
               <span>
-                <strong>Play waitlist later</strong>
-                I want to hear when the Google Play rollout is ready.
+                <strong>Play waitlist に登録する</strong>
+                Google Play での案内が出たら連絡を受け取りたいです。
               </span>
             </label>
           </div>
           <p class="note small">
-            Joining this waitlist does not by itself advance the Google Play closed-test requirement. The actual Play opt-in step will be shared later.
+            この waitlist 登録だけでは、Google Play の closed test 条件はまだ進みません。実際の Play opt-in 手順は後日案内します。
           </p>
         </div>
 
         <div>
-          <h2>Join the waitlist</h2>
+          <h2>waitlist に登録する</h2>
           <form id="waitlist-form" method="post" target="submit-target">
             <div class="field">
-              <label for="email">Email</label>
+              <label for="email">メールアドレス</label>
               <input id="email" name="email" type="email" autocomplete="email" required>
             </div>
 
             <div class="field">
-              <label for="device_model">Device model</label>
+              <label for="device_model">端末名</label>
               <input id="device_model" name="device_model" type="text" placeholder="Pixel 9a">
             </div>
 
             <div class="field">
-              <label for="android_version">Android version</label>
+              <label for="android_version">Android バージョン</label>
               <input id="android_version" name="android_version" type="text" placeholder="Android 16">
             </div>
 
             <div class="field">
-              <label for="x_handle">X handle (optional)</label>
+              <label for="x_handle">X アカウント（任意）</label>
               <input id="x_handle" name="x_handle" type="text" placeholder="@example">
             </div>
 
             <div class="field">
-              <label for="notes">Notes (optional)</label>
-              <textarea id="notes" name="notes" placeholder="Anything useful about your setup or what you want to test"></textarea>
+              <label for="notes">補足メモ（任意）</label>
+              <textarea id="notes" name="notes" placeholder="試したいことや端末構成などがあれば書いてください"></textarea>
             </div>
 
             <input class="hidden" id="interest_type_hidden" name="interest_type" type="text" value="source_build_now" aria-hidden="true" tabindex="-1">
-            <input class="hidden" name="source" type="text" value="github_pages_waitlist" aria-hidden="true" tabindex="-1">
+            <input class="hidden" name="source" type="text" value="github_pages_waitlist_ja" aria-hidden="true" tabindex="-1">
             <input class="hidden" name="website" type="text" value="" aria-hidden="true" tabindex="-1">
             <input class="hidden" name="submitted_at" type="text" value="">
 
-            <button id="submit-button" type="submit">Submit</button>
+            <button id="submit-button" type="submit">送信する</button>
           </form>
           <p class="note small">
-            The form submits to a Google Apps Script endpoint backed by a spreadsheet.
+            このフォームは Google Apps Script とスプレッドシートに送信されます。
           </p>
         </div>
       </section>
 
       <section id="result-source" class="panel result">
-        <h2>You’re on the source-build path</h2>
+        <h2>source build で試す方向けの案内です</h2>
         <p class="note">
-          Build the Android app from source, then run <code>relaydex up</code> on Windows and pair from Android.
+          Android アプリを source build して、Windows 側で <code>relaydex up</code> を実行し、Android からペアリングしてください。
         </p>
         <div class="links">
-          <a class="cta" href="https://github.com/Ranats/relaydex#build-the-android-app-from-source">Build from source
-            <small>https://github.com/Ranats/relaydex#build-the-android-app-from-source</small>
+          <a class="cta" href="https://github.com/Ranats/relaydex/blob/main/README.ja.md#android-アプリを-source-build-する">日本語 README の build 手順
+            <small>https://github.com/Ranats/relaydex/blob/main/README.ja.md</small>
           </a>
-          <a class="cta" href="https://github.com/Ranats/relaydex/issues">Send feedback on GitHub
+          <a class="cta" href="https://github.com/Ranats/relaydex/issues">GitHub Issues で報告する
             <small>https://github.com/Ranats/relaydex/issues</small>
           </a>
-          <a class="cta" href="https://x.com/Ranats85">Contact on X
+          <a class="cta" href="https://x.com/Ranats85">X で連絡する
             <small>https://x.com/Ranats85</small>
           </a>
         </div>
       </section>
 
       <section id="result-waitlist" class="panel result">
-        <h2>You’re on the Play waitlist</h2>
+        <h2>Play waitlist に登録しました</h2>
         <p class="note">
-          Your email has been recorded for the later Play rollout. When the Play flow is ready, you can be guided through the Google Group and Play opt-in steps.
+          後日の Play rollout に向けてメールアドレスを記録しました。Play 側の準備ができたら、Google Group や Play opt-in の案内に進めます。
         </p>
         <div class="links">
-          <a class="cta" href="https://groups.google.com/g/relaydex-android-testers">Open the Google Group
+          <a class="cta" href="https://groups.google.com/g/relaydex-android-testers">Google Group を開く
             <small>https://groups.google.com/g/relaydex-android-testers</small>
           </a>
-          <a class="cta" href="https://github.com/Ranats/relaydex">Back to the repository
+          <a class="cta" href="https://github.com/Ranats/relaydex">リポジトリに戻る
             <small>https://github.com/Ranats/relaydex</small>
           </a>
-          <a class="cta" href="https://x.com/Ranats85">Follow updates on X
+          <a class="cta" href="https://x.com/Ranats85">X で更新を見る
             <small>https://x.com/Ranats85</small>
           </a>
         </div>
@@ -399,15 +398,15 @@
       syncInterest();
       if (APPS_SCRIPT_ENDPOINT.includes("REPLACE_WITH_YOUR_APPS_SCRIPT_WEB_APP_URL")) {
         event.preventDefault();
-        alert("Set your Apps Script Web App URL in waitlist.html before publishing this form.");
+        alert("waitlist-ja.html に Apps Script の Web App URL を設定してから公開してください。");
         return;
       }
       form.action = APPS_SCRIPT_ENDPOINT;
       submitButton.disabled = true;
-      submitButton.textContent = "Submitting...";
+      submitButton.textContent = "送信中...";
       setTimeout(() => {
         submitButton.disabled = false;
-        submitButton.textContent = "Submit";
+        submitButton.textContent = "送信する";
         showResult();
       }, 500);
     });

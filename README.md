@@ -146,6 +146,7 @@ Right now there are two public paths:
 Recommended waitlist page:
 
 - `https://ranats.github.io/relaydex/waitlist.html`
+- `https://ranats.github.io/relaydex/waitlist-ja.html`
 
 Direct Google Group link:
 
@@ -158,6 +159,7 @@ The actual Play opt-in and install step will be shared later.
 If you tried a source build and hit a bug, pairing issue, reconnect problem, or UI confusion:
 
 - GitHub Issues: `https://github.com/Ranats/relaydex/issues`
+- X: `https://x.com/Ranats85`
 
 Helpful details:
 

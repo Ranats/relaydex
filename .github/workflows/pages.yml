@@ -8,6 +8,7 @@ on:
       - ".github/workflows/pages.yml"
       - "closed-test.html"
       - "waitlist.html"
+      - "waitlist-ja.html"
       - "privacypolicy.html"
   workflow_dispatch:
 
@@ -36,6 +37,7 @@ jobs:
           mkdir -p _site
           cp closed-test.html _site/closed-test.html
           cp waitlist.html _site/waitlist.html
+          cp waitlist-ja.html _site/waitlist-ja.html
           cp privacypolicy.html _site/privacypolicy.html
 
       - name: Upload Pages artifact

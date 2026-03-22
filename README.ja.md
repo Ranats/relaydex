@@ -146,6 +146,7 @@ Android アプリはまだ Google Play で一般公開していません。
 推奨 waitlist ページ:
 
 - `https://ranats.github.io/relaydex/waitlist.html`
+- `https://ranats.github.io/relaydex/waitlist-ja.html`
 
 Google Group の直リンク:
 
@@ -158,6 +159,7 @@ Google Group の直リンク:
 source build を試して、バグ、pairing 問題、reconnect 問題、UI 上の分かりにくさなどがあれば、次から報告してください。
 
 - GitHub Issues: `https://github.com/Ranats/relaydex/issues`
+- X: `https://x.com/Ranats85`
 
 あると助かる情報:
 
