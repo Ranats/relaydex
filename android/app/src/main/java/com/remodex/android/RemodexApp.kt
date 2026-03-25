@@ -360,6 +360,9 @@ private fun ThreadDetailScreen(
     BackHandler(onBack = onBack)
     val listState = remember { LazyListState() }
     val coroutineScope = rememberCoroutineScope()
+    val visibleMessages = remember(state.messages) {
+        state.messages.filter { it.role != ConversationRole.SYSTEM && it.kind == io.relaydex.android.model.ConversationKind.CHAT }
+    }
     val showJumpToLatest by remember {
         derivedStateOf {
             val totalItems = listState.layoutInfo.totalItemsCount
@@ -372,9 +375,9 @@ private fun ThreadDetailScreen(
         }
     }
 
-    LaunchedEffect(state.selectedThreadId, state.messages.size) {
-        if (state.messages.isNotEmpty()) {
-            listState.scrollToItem(state.messages.lastIndex)
+    LaunchedEffect(state.selectedThreadId, visibleMessages.size) {
+        if (visibleMessages.isNotEmpty()) {
+            listState.scrollToItem(visibleMessages.lastIndex)
         }
     }
 
@@ -417,7 +420,7 @@ private fun ThreadDetailScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    items(state.messages, key = { it.id }) { message ->
+                    items(visibleMessages, key = { it.id }) { message ->
                         MessageBubble(message = message)
                     }
                 }
@@ -426,8 +429,8 @@ private fun ThreadDetailScreen(
                     OutlinedButton(
                         onClick = {
                             coroutineScope.launch {
-                                if (state.messages.isNotEmpty()) {
-                                    listState.animateScrollToItem(state.messages.lastIndex)
+                                if (visibleMessages.isNotEmpty()) {
+                                    listState.animateScrollToItem(visibleMessages.lastIndex)
                                 }
                             }
                         },

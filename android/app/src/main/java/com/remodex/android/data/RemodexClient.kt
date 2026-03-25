@@ -164,7 +164,12 @@ class RemodexClient(
                 ?: result.opt("next_cursor").takeUnless { it == null }
         } while (nextCursor != null && nextCursor != JSONObject.NULL && threads.size < limit)
 
-        val sorted = threads.sortedByDescending { it.updatedAtEpochMs ?: it.createdAtEpochMs ?: 0L }
+        val sorted = threads
+            .asSequence()
+            .filter { it.isLikelyUserFacingThread() }
+            .distinctBy { it.id }
+            .sortedByDescending { it.updatedAtEpochMs ?: it.createdAtEpochMs ?: 0L }
+            .toList()
         updatesFlow.emit(ClientUpdate.ThreadsLoaded(sorted))
         return sorted
     }

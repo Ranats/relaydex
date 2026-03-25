@@ -23,12 +23,24 @@ private val isoFormatters = listOf(
 
 fun JSONObject.stringOrNull(vararg keys: String): String? {
     for (key in keys) {
-        val value = optString(key, "").trim()
+        val value = sanitizeDisplayText(optString(key, ""))
         if (value.isNotEmpty()) {
             return value
         }
     }
     return null
+}
+
+private fun sanitizeDisplayText(value: String?): String {
+    val normalized = value?.trim().orEmpty()
+    if (normalized.isEmpty()) {
+        return ""
+    }
+
+    return when (normalized.lowercase(Locale.US)) {
+        "null", "undefined", "none", "n/a" -> ""
+        else -> normalized
+    }
 }
 
 fun JSONObject.objectOrNull(vararg keys: String): JSONObject? {
@@ -114,6 +126,21 @@ fun decodeThreadSummary(json: JSONObject): ThreadSummary? {
         createdAtEpochMs = createdAt,
         updatedAtEpochMs = updatedAt,
     )
+}
+
+fun ThreadSummary.isLikelyUserFacingThread(): Boolean {
+    val normalizedTitle = title.trim().lowercase(Locale.US)
+    val normalizedPreview = preview?.trim()?.lowercase(Locale.US)
+
+    if (normalizedTitle in setOf("null", "undefined", "none")) {
+        return false
+    }
+
+    if (normalizedTitle == "conversation" && normalizedPreview.isNullOrBlank() && cwd.isNullOrBlank()) {
+        return false
+    }
+
+    return true
 }
 
 fun decodeMessagesFromThreadRead(threadId: String, threadObject: JSONObject): List<ConversationMessage> {
