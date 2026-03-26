@@ -112,6 +112,7 @@ class RemodexClient(
         persistence.savePairing(pairing)
         savedPairingPayload = pairing
         lastAppliedBridgeOutboundSeq = persistence.loadLastAppliedBridgeOutboundSeq()
+        sessionWorkingDirectory = pairing.hostWorkingDirectory
         emitPairingAvailability()
         connect(pairing)
     }
@@ -274,6 +275,7 @@ class RemodexClient(
 
     private suspend fun connect(pairing: PairingPayload) {
         disconnect(clearSavedPairing = false)
+        sessionWorkingDirectory = pairing.hostWorkingDirectory
         updatesFlow.emit(ClientUpdate.Connection(ConnectionStatus.CONNECTING, "Connecting to relay..."))
 
         val relayUrl = pairing.relay.trimEnd('/')
@@ -340,6 +342,9 @@ class RemodexClient(
         performSecureHandshake(pairing)
         initializeSession()
         runCatching { loadSessionInfo() }
+        if (!sessionWorkingDirectory.isNullOrBlank()) {
+            updatesFlow.emit(ClientUpdate.SessionContextLoaded(sessionWorkingDirectory))
+        }
         runCatching { loadRuntimeConfig() }
         updatesFlow.emit(
             ClientUpdate.Connection(

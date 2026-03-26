@@ -33,7 +33,7 @@ const MAX_PAIRING_AGE_MS = 5 * 60 * 1000;
 const MAX_BRIDGE_OUTBOUND_MESSAGES = 500;
 const MAX_BRIDGE_OUTBOUND_BYTES = 10 * 1024 * 1024;
 
-function createBridgeSecureTransport({ sessionId, relayUrl, deviceState }) {
+function createBridgeSecureTransport({ sessionId, relayUrl, deviceState, workingDirectory }) {
   let currentDeviceState = deviceState;
   let pendingHandshake = null;
   let activeSession = null;
@@ -53,6 +53,7 @@ function createBridgeSecureTransport({ sessionId, relayUrl, deviceState }) {
       macDeviceId: currentDeviceState.macDeviceId,
       macIdentityPublicKey: currentDeviceState.macIdentityPublicKey,
       expiresAt: currentPairingExpiresAt,
+      cwd: workingDirectory || process.cwd(),
     };
   }
 

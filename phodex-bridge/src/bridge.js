@@ -44,6 +44,7 @@ function startBridge() {
     sessionId,
     relayUrl: relayBaseUrl,
     deviceState,
+    workingDirectory: process.cwd(),
   });
 
   const codex = createCodexTransport({

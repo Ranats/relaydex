@@ -10,6 +10,7 @@ data class PairingPayload(
     val macDeviceId: String,
     val macIdentityPublicKey: String,
     val expiresAt: Long,
+    val hostWorkingDirectory: String? = null,
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("v", version)
@@ -18,6 +19,7 @@ data class PairingPayload(
         .put("macDeviceId", macDeviceId)
         .put("macIdentityPublicKey", macIdentityPublicKey)
         .put("expiresAt", expiresAt)
+        .put("cwd", hostWorkingDirectory)
 
     companion object {
         fun fromJson(json: JSONObject): PairingPayload? {
@@ -25,6 +27,10 @@ data class PairingPayload(
             val sessionId = json.optString("sessionId").trim()
             val macDeviceId = json.optString("macDeviceId").trim()
             val macIdentityPublicKey = json.optString("macIdentityPublicKey").trim()
+            val hostWorkingDirectory = listOf("cwd", "currentWorkingDirectory", "working_directory")
+                .asSequence()
+                .map { key -> json.optString(key).trim() }
+                .firstOrNull { it.isNotEmpty() }
             if (relay.isEmpty() || sessionId.isEmpty() || macDeviceId.isEmpty() || macIdentityPublicKey.isEmpty()) {
                 return null
             }
@@ -36,6 +42,7 @@ data class PairingPayload(
                 macDeviceId = macDeviceId,
                 macIdentityPublicKey = macIdentityPublicKey,
                 expiresAt = json.optLong("expiresAt", 0L),
+                hostWorkingDirectory = hostWorkingDirectory,
             )
         }
     }
