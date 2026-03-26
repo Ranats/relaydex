@@ -62,6 +62,8 @@ private const val secureHandshakeTimeoutMs = 20_000L
 private const val defaultRpcTimeoutMs = 20_000L
 private const val threadReadTimeoutMs = 45_000L
 private const val threadListTimeoutMs = 30_000L
+private const val threadListMaxPages = 12
+private const val threadListMaxCollected = 480
 
 class RemodexClient(
     private val persistence: RemodexPersistence,
@@ -141,6 +143,8 @@ class RemodexClient(
     suspend fun listThreads(limit: Int = 40): List<ThreadSummary> {
         val threads = mutableListOf<ThreadSummary>()
         var nextCursor: Any? = JSONObject.NULL
+        var pageCount = 0
+        val effectiveLimit = limit.coerceAtLeast(1)
         do {
             val params = JSONObject()
                 .put("sourceKinds", JSONArray().apply {
@@ -150,7 +154,7 @@ class RemodexClient(
                     put("exec")
                     put("unknown")
                 })
-                .put("limit", limit)
+                .put("limit", effectiveLimit)
                 .put("cursor", nextCursor)
             val result = sendRequest("thread/list", params)
             val page = result.optJSONArray("data")
@@ -161,9 +165,10 @@ class RemodexClient(
                 val thread = page.optJSONObject(index)?.let(::decodeThreadSummary) ?: continue
                 threads += thread
             }
+            pageCount += 1
             nextCursor = result.opt("nextCursor").takeUnless { it == null }
                 ?: result.opt("next_cursor").takeUnless { it == null }
-        } while (nextCursor != null && nextCursor != JSONObject.NULL && threads.size < limit)
+        } while (shouldContinueThreadPagination(threads, nextCursor, pageCount, effectiveLimit))
 
         val sorted = threads
             .asSequence()
@@ -172,8 +177,9 @@ class RemodexClient(
             .sortedByDescending { it.updatedAtEpochMs ?: it.createdAtEpochMs ?: 0L }
             .toList()
         val scoped = filterThreadsForCurrentProject(sorted)
-        updatesFlow.emit(ClientUpdate.ThreadsLoaded(scoped))
-        return scoped
+        val limited = scoped.take(effectiveLimit)
+        updatesFlow.emit(ClientUpdate.ThreadsLoaded(limited))
+        return limited
     }
 
     suspend fun startThread(): ThreadSummary {
@@ -931,13 +937,39 @@ class RemodexClient(
 
     private fun filterThreadsForCurrentProject(threads: List<ThreadSummary>): List<ThreadSummary> {
         val hostWorkingDirectory = sessionWorkingDirectory
-        val inScope = if (hostWorkingDirectory.isNullOrBlank()) {
-            emptyList()
-        } else {
-            threads.filter { it.belongsToProjectScope(hostWorkingDirectory) }
+        if (hostWorkingDirectory.isNullOrBlank()) {
+            return threads
         }
 
-        return if (inScope.isNotEmpty()) inScope else threads
+        return threads.filter { it.belongsToProjectScope(hostWorkingDirectory) }
+    }
+
+    private fun shouldContinueThreadPagination(
+        threads: List<ThreadSummary>,
+        nextCursor: Any?,
+        pageCount: Int,
+        limit: Int,
+    ): Boolean {
+        if (nextCursor == null || nextCursor == JSONObject.NULL) {
+            return false
+        }
+        if (pageCount >= threadListMaxPages || threads.size >= threadListMaxCollected) {
+            return false
+        }
+
+        val visibleThreads = threads
+            .asSequence()
+            .filter { it.isLikelyUserFacingThread() }
+            .distinctBy { it.id }
+            .toList()
+        val hostWorkingDirectory = sessionWorkingDirectory
+        val relevantCount = if (hostWorkingDirectory.isNullOrBlank()) {
+            visibleThreads.size
+        } else {
+            visibleThreads.count { it.belongsToProjectScope(hostWorkingDirectory) }
+        }
+
+        return relevantCount < limit
     }
 
     private fun parsePairingPayload(rawPayload: String): PairingPayload {

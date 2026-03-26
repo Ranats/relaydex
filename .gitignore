@@ -48,3 +48,6 @@ $TMP_PLACEHOLDER
 
 # VS Code
 .vscode/
+
+# Local automation / webhook config
+tools/local/

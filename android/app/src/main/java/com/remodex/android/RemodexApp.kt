@@ -298,13 +298,26 @@ private fun ThreadListScreen(
 
             BusyBanner(state = state)
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(state.threads, key = { it.id }) { thread ->
-                    ThreadCard(thread = thread, onOpenThread = onOpenThread)
+            state.hostWorkingDirectory?.takeIf { it.isNotBlank() }?.let { workingDirectory ->
+                Text(
+                    text = "Project scope: $workingDirectory",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (state.threads.isEmpty()) {
+                EmptyThreadState(hostWorkingDirectory = state.hostWorkingDirectory)
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(state.threads, key = { it.id }) { thread ->
+                        ThreadCard(thread = thread, onOpenThread = onOpenThread)
+                    }
                 }
             }
         }
@@ -509,6 +522,44 @@ private fun MessageBubble(message: ConversationMessage) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyThreadState(hostWorkingDirectory: String?) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "No recent threads found for this project.",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Start a new thread from Android, or run `relaydex up` from the project directory you want to control.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                hostWorkingDirectory?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        text = "Current host directory: $it",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
             }
         }
     }
