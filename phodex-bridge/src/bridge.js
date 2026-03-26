@@ -198,6 +198,9 @@ function startBridge() {
 
   // Routes decrypted app payloads through the same bridge handlers as before.
   function handleApplicationMessage(rawMessage) {
+    if (handleBridgeInfoRequest(rawMessage)) {
+      return;
+    }
     if (handleBridgeManagedHandshakeMessage(rawMessage)) {
       return;
     }
@@ -228,6 +231,30 @@ function startBridge() {
     }
 
     rememberActiveThread(threadId, source);
+  }
+
+  function handleBridgeInfoRequest(rawMessage) {
+    let parsed = null;
+    try {
+      parsed = JSON.parse(rawMessage);
+    } catch {
+      return false;
+    }
+
+    const method = typeof parsed?.method === "string" ? parsed.method.trim() : "";
+    if (method !== "bridge/sessionInfo" || parsed?.id == null) {
+      return false;
+    }
+
+    sendApplicationResponse(JSON.stringify({
+      id: parsed.id,
+      result: {
+        cwd: process.cwd(),
+        sessionId,
+        relayUrl: relayBaseUrl,
+      },
+    }));
+    return true;
   }
 
   // The spawned/shared Codex app-server stays warm across phone reconnects.

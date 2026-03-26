@@ -127,13 +127,23 @@ data class ThreadSummary(
     val createdAtEpochMs: Long?,
     val updatedAtEpochMs: Long?,
 ) {
+    val normalizedProjectPath: String?
+        get() = normalizeProjectPath(cwd)
+
     val projectName: String
-        get() = cwd
-            ?.trim()
-            ?.trimEnd('/')
+        get() = normalizedProjectPath
             ?.substringAfterLast('/')
             ?.takeIf { it.isNotBlank() }
             ?: "No Project"
+
+    fun belongsToProjectScope(hostWorkingDirectory: String?): Boolean {
+        val threadPath = normalizedProjectPath ?: return false
+        val hostPath = normalizeProjectPath(hostWorkingDirectory) ?: return false
+
+        return threadPath == hostPath
+            || threadPath.startsWith("$hostPath/")
+            || hostPath.startsWith("$threadPath/")
+    }
 }
 
 data class ReasoningEffortOption(
@@ -223,6 +233,10 @@ sealed interface ClientUpdate {
         val selectedReasoningEffort: String?,
     ) : ClientUpdate
 
+    data class SessionContextLoaded(
+        val hostWorkingDirectory: String?,
+    ) : ClientUpdate
+
     data class AssistantDelta(
         val threadId: String?,
         val turnId: String?,
@@ -252,4 +266,18 @@ fun JSONArray.toStringList(): List<String> {
         values += optString(index)
     }
     return values
+}
+
+private fun normalizeProjectPath(value: String?): String? {
+    val trimmed = value?.trim().orEmpty()
+    if (trimmed.isEmpty()) {
+        return null
+    }
+
+    val normalizedSeparators = trimmed.replace('\\', '/')
+    if (normalizedSeparators == "/") {
+        return normalizedSeparators
+    }
+
+    return normalizedSeparators.trimEnd('/').ifBlank { "/" }
 }

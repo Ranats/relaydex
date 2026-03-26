@@ -88,6 +88,7 @@ class RemodexClient(
     private var availableModels: List<ModelOption> = emptyList()
     private var selectedModelId: String? = persistence.loadSelectedModelId()
     private var selectedReasoningEffort: String? = persistence.loadSelectedReasoningEffort()
+    private var sessionWorkingDirectory: String? = null
 
     val updates: SharedFlow<ClientUpdate> = updatesFlow.asSharedFlow()
 
@@ -170,13 +171,15 @@ class RemodexClient(
             .distinctBy { it.id }
             .sortedByDescending { it.updatedAtEpochMs ?: it.createdAtEpochMs ?: 0L }
             .toList()
-        updatesFlow.emit(ClientUpdate.ThreadsLoaded(sorted))
-        return sorted
+        val scoped = filterThreadsForCurrentProject(sorted)
+        updatesFlow.emit(ClientUpdate.ThreadsLoaded(scoped))
+        return scoped
     }
 
     suspend fun startThread(): ThreadSummary {
         val params = JSONObject()
         runtimeModelIdentifierForTurn()?.let { params.put("model", it) }
+        sessionWorkingDirectory?.let { params.put("cwd", it) }
         val result = sendRequest("thread/start", params)
         val thread = decodeThreadSummary(result.optJSONObject("thread") ?: JSONObject())
             ?: throw IllegalStateException("thread/start response did not include a thread.")
@@ -330,6 +333,7 @@ class RemodexClient(
         updatesFlow.emit(ClientUpdate.Connection(ConnectionStatus.HANDSHAKING, "Performing secure handshake..."))
         performSecureHandshake(pairing)
         initializeSession()
+        runCatching { loadSessionInfo() }
         runCatching { loadRuntimeConfig() }
         updatesFlow.emit(
             ClientUpdate.Connection(
@@ -367,6 +371,12 @@ class RemodexClient(
         }
 
         sendNotification("initialized", null)
+    }
+
+    private suspend fun loadSessionInfo() {
+        val result = sendRequest("bridge/sessionInfo", JSONObject())
+        sessionWorkingDirectory = result.stringOrNull("cwd", "currentWorkingDirectory", "working_directory")
+        updatesFlow.emit(ClientUpdate.SessionContextLoaded(sessionWorkingDirectory))
     }
 
     private suspend fun resumeThread(threadId: String) {
@@ -917,6 +927,17 @@ class RemodexClient(
                 selectedReasoningEffort = selectedReasoningEffortForSelectedModel(),
             )
         )
+    }
+
+    private fun filterThreadsForCurrentProject(threads: List<ThreadSummary>): List<ThreadSummary> {
+        val hostWorkingDirectory = sessionWorkingDirectory
+        val inScope = if (hostWorkingDirectory.isNullOrBlank()) {
+            emptyList()
+        } else {
+            threads.filter { it.belongsToProjectScope(hostWorkingDirectory) }
+        }
+
+        return if (inScope.isNotEmpty()) inScope else threads
     }
 
     private fun parsePairingPayload(rawPayload: String): PairingPayload {

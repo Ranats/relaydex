@@ -37,6 +37,7 @@ data class RemodexUiState(
     val availableModels: List<ModelOption> = emptyList(),
     val selectedModelId: String? = null,
     val selectedReasoningEffort: String? = null,
+    val hostWorkingDirectory: String? = null,
     val errorMessage: String? = null,
     val pendingApproval: ApprovalRequest? = null,
 )
@@ -281,6 +282,12 @@ class MainViewModel(
                         selectedModelId = update.selectedModelId,
                         selectedReasoningEffort = update.selectedReasoningEffort,
                     )
+                }
+            }
+
+            is ClientUpdate.SessionContextLoaded -> {
+                uiStateFlow.update {
+                    it.copy(hostWorkingDirectory = update.hostWorkingDirectory)
                 }
             }
 
